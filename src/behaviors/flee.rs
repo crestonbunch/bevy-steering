@@ -1,6 +1,8 @@
 use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
 use derivative::Derivative;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     agent::SteeringAgent,
@@ -8,6 +10,7 @@ use crate::{
 };
 
 #[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derivative(Default)]
 pub struct Flee {
     #[derivative(Default(value = "f32::MAX"))]
@@ -59,4 +62,3 @@ pub(crate) fn run(mut query: Query<FleeBehaviorAgentQuery>) {
         item.outputs.set(BehaviorType::Flee, steering_target);
     }
 }
-

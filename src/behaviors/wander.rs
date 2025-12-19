@@ -1,6 +1,8 @@
 use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
 use rand::{Rng, SeedableRng, rngs::StdRng};
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     agent::SteeringAgent,
@@ -11,6 +13,7 @@ use crate::{
 /// ahead of the character and randomly walking a target point around its surface.
 /// This produces more interesting, sustained turns compared to purely random steering.
 #[derive(Component, Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Wander {
     wander_distance: f32,
     wander_radius: f32,

@@ -1,6 +1,8 @@
 use avian3d::prelude::LayerMask;
 use bevy::prelude::*;
 use derivative::Derivative;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     control::SteeringOutputs,
@@ -12,6 +14,7 @@ use crate::{
 /// agents, you should use the Directional mode. For simple
 /// point-like agents, you should use the OmniDirectional mode.
 #[derive(Copy, Clone, Debug, Default, Reflect)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum SteeringLocomotionMode {
     /// The agent can move in any direction, and forces can
     /// be applied in any direction. Torque will not be applied.
@@ -27,6 +30,7 @@ pub enum SteeringLocomotionMode {
 /// steering behaviors. Add a [SteeringController] component
 /// to the agent to give it steering behavior.
 #[derive(Component, Clone, Debug, Reflect, Derivative)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derivative(Default)]
 #[require(Neighbor, Neighborhood, SteeringOutputs)]
 #[reflect(Component)]

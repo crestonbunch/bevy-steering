@@ -23,6 +23,10 @@ name = "accesskit"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf203f9d3bd8f29f98833d1fbef628df18f759248a547e7e01cfbf63cda36a99"
+dependencies = [
+ "enumn",
+ "serde",
+]
 
 [[package]]
 name = "accesskit_consumer"
@@ -340,6 +344,7 @@ dependencies = [
  "nalgebra",
  "parry3d",
  "parry3d-f64",
+ "serde",
  "slab",
  "smallvec",
  "thiserror 2.0.17",
@@ -383,6 +388,7 @@ dependencies = [
  "enum-map",
  "itertools 0.14.0",
  "rand",
+ "serde",
  "strum",
  "vleue_navigator",
 ]
@@ -398,6 +404,7 @@ dependencies = [
  "bevy_derive",
  "bevy_ecs",
  "bevy_reflect",
+ "serde",
 ]
 
 [[package]]
@@ -818,6 +825,7 @@ dependencies = [
  "bevy_math",
  "bevy_reflect",
  "glam_matrix_extras",
+ "serde",
 ]
 
 [[package]]
@@ -862,6 +870,7 @@ dependencies = [
  "bevy_reflect",
  "derive_more",
  "log",
+ "serde",
  "smol_str",
  "thiserror 2.0.17",
 ]
@@ -1027,6 +1036,7 @@ dependencies = [
  "bytemuck",
  "derive_more",
  "hexasphere",
+ "serde",
  "thiserror 2.0.17",
  "tracing",
  "wgpu-types",
@@ -1465,6 +1475,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "284738382605476667bbe80cf0959f4dffb61adbdb0149e22e67f4dbf97a5bc2"
 dependencies = [
  "bevy",
+ "serde",
 ]
 
 [[package]]
@@ -1493,6 +1504,7 @@ dependencies = [
  "bevy_utils",
  "bevy_window",
  "derive_more",
+ "serde",
  "smallvec",
  "taffy",
  "thiserror 2.0.17",
@@ -2290,6 +2302,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enumn"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f9ed6b3789237c8a0c1c505af1c7eb2c560df6186f01b098c3a1064ea532f38"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.111",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2720,6 +2743,7 @@ checksum = "6cb141d04d0bbebc52c325352ae0c930a6d42c77ccd02b7c591a73bd7bc1d859"
 dependencies = [
  "bevy_reflect",
  "glam 0.30.9",
+ "serde",
 ]
 
 [[package]]
@@ -3409,6 +3433,7 @@ dependencies = [
  "num-complex",
  "num-rational",
  "num-traits",
+ "serde",
  "simba",
  "typenum",
 ]
@@ -3540,6 +3565,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
 dependencies = [
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -3970,6 +3996,8 @@ dependencies = [
  "ordered-float",
  "rayon",
  "rstar",
+ "serde",
+ "serde_arrays",
  "simba",
  "slab",
  "smallvec",
@@ -3999,6 +4027,8 @@ dependencies = [
  "ordered-float",
  "rayon",
  "rstar",
+ "serde",
+ "serde_arrays",
  "simba",
  "slab",
  "smallvec",
@@ -4597,6 +4627,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_arrays"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94a16b99c5ea4fe3daccd14853ad260ec00ea043b2708d1fd1da3106dcd8d9df"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_core"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4693,6 +4732,9 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "smithay-client-toolkit"
@@ -4737,6 +4779,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "num-traits",
  "robust",
+ "serde",
  "smallvec",
 ]
 

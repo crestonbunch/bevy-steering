@@ -1,5 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     agent::SteeringAgent,
@@ -10,6 +12,7 @@ use crate::{
 /// The path is represented as a spine (polyline of Vec3 points) and a radius,
 /// forming a "tube" or "generalized cylinder" that the character should stay within.
 #[derive(Component, Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PathFollowing {
     /// The points that make up the path spine (polyline)
     path: Vec<Vec3>,

@@ -1,5 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     agent::SteeringAgent,
@@ -7,6 +9,7 @@ use crate::{
 };
 
 #[derive(Component, Debug, Copy, Clone, Reflect)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Approach {
     target_radius: f32,
     target: Vec3,

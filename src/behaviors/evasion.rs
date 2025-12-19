@@ -1,5 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     agent::SteeringAgent,
@@ -9,6 +11,7 @@ use crate::{
 /// Evasion behavior that predicts the future position of a pursuing target
 /// and steers away from it. The evasive counterpart to Pursuit.
 #[derive(Component, Debug, Copy, Clone, Reflect)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Evasion {
     /// The entity to evade from
     target: Entity,
@@ -192,4 +195,3 @@ pub(crate) fn debug_evasion(
         }
     }
 }
-

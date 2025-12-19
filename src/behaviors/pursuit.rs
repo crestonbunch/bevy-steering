@@ -1,5 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     agent::SteeringAgent,
@@ -10,6 +12,7 @@ use crate::{
 /// and steers toward it. More effective than simple seek when chasing
 /// moving targets. Supports offset pursuit for fly-by maneuvers.
 #[derive(Component, Debug, Copy, Clone, Reflect)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Pursuit {
     /// The entity being pursued
     target: Entity,
