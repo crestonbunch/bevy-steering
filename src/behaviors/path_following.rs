@@ -1,5 +1,6 @@
 use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
+use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
@@ -11,16 +12,20 @@ use crate::{
 /// PathFollowing enables a character to steer along a predetermined path.
 /// The path is represented as a spine (polyline of Vec3 points) and a radius,
 /// forming a "tube" or "generalized cylinder" that the character should stay within.
-#[derive(Component, Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect, Derivative)]
+#[derivative(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PathFollowing {
     /// The points that make up the path spine (polyline)
     path: Vec<Vec3>,
     /// The radius of the path tube
+    #[derivative(Default(value = "1.0"))]
     path_radius: f32,
     /// How far ahead to predict the character's future position (in time units)
+    #[derivative(Default(value = "1.0"))]
     prediction_time: f32,
     /// How far ahead along the path to look for the target point
+    #[derivative(Default(value = "1.0"))]
     target_distance: f32,
 }
 
