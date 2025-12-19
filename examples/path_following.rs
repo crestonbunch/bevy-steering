@@ -6,8 +6,8 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(PhysicsPlugins::default())
-        .add_plugins(AgentsPlugin)
-        .add_plugins(DebugAgentsPlugin)
+        .add_plugins(SteeringPlugin)
+        .add_plugins(DebugSteeringPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, draw_path_gizmos)
         .run();
@@ -124,4 +124,3 @@ fn setup(
         Transform::from_xyz(4.0, 8.0, 4.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 }
-

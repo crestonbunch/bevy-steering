@@ -19,14 +19,16 @@ use crate::{
 };
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-pub struct AgentsSystem;
+pub struct BehaviorSystemSet;
 
-pub struct AgentsPlugin;
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub struct SteeringSystemSet;
 
-impl Plugin for AgentsPlugin {
+pub struct SteeringPlugin;
+
+impl Plugin for SteeringPlugin {
     fn build(&self, app: &mut App) {
-        let update_systems = (
-            update_neighborhoods,
+        let behavior_systems = (
             alignment::run,
             approach::run,
             avoid::run,
@@ -38,23 +40,28 @@ impl Plugin for AgentsPlugin {
             seek::run,
             separation::run,
             wander::run,
+        )
+            .in_set(BehaviorSystemSet);
+        let update_systems = (
+            update_neighborhoods,
+            behavior_systems,
             temporal_smoothing,
             update_previous_steering_outputs,
             combine_steering_targets,
             move_agent,
         )
             .chain()
-            .in_set(AgentsSystem);
+            .in_set(SteeringSystemSet);
         app.add_systems(FixedUpdate, update_systems);
     }
 }
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
-pub struct DebugAgentsSystem;
+pub struct DebugSteeringSystem;
 
-pub struct DebugAgentsPlugin;
+pub struct DebugSteeringPlugin;
 
-impl Plugin for DebugAgentsPlugin {
+impl Plugin for DebugSteeringPlugin {
     fn build(&self, app: &mut App) {
         let debug_systems = (
             debug_neighborhoods,
@@ -64,8 +71,7 @@ impl Plugin for DebugAgentsPlugin {
             debug_combined_steering,
             debug_movement,
         )
-            .chain()
-            .in_set(DebugAgentsSystem);
+            .in_set(DebugSteeringSystem);
         app.add_systems(Update, debug_systems);
     }
 }

@@ -17,8 +17,8 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(PhysicsPlugins::default())
-        .add_plugins(AgentsPlugin)
-        .add_plugins(DebugAgentsPlugin)
+        .add_plugins(SteeringPlugin)
+        .add_plugins(DebugSteeringPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (update_seek_target, draw_waypoint_gizmos))
         .run();

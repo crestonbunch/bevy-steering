@@ -22,8 +22,8 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(PhysicsPlugins::default())
-        .add_plugins(AgentsPlugin)
-        .add_plugins(DebugAgentsPlugin)
+        .add_plugins(SteeringPlugin)
+        .add_plugins(DebugSteeringPlugin)
         .insert_resource(WaypointChangeTimer(Timer::from_seconds(
             3.0,
             TimerMode::Repeating,

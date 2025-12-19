@@ -10,7 +10,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(PhysicsPlugins::default())
-        .add_plugins(AgentsPlugin)
+        .add_plugins(SteeringPlugin)
         // .add_plugins(DebugAgentsPlugin)
         .init_resource::<FloatingTarget>()
         .add_systems(Startup, setup)
