@@ -12,7 +12,7 @@ use crate::{
 /// Wander behavior creates random but smooth steering by projecting a sphere
 /// ahead of the character and randomly walking a target point around its surface.
 /// This produces more interesting, sustained turns compared to purely random steering.
-#[derive(Component, Debug, Clone, Reflect)]
+#[derive(Component, Debug, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Wander {
     wander_distance: f32,
