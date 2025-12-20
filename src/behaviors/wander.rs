@@ -15,11 +15,14 @@ use crate::{
 #[derive(Component, Debug, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Wander {
-    wander_distance: f32,
-    wander_radius: f32,
-    wander_rate: f32,
+    /// Distance ahead of the character where the wander sphere is projected
+    pub wander_distance: f32,
+    /// Radius of the wander sphere (determines maximum wandering strength)
+    pub wander_radius: f32,
+    /// Maximum change in wander angle per frame (determines wander rate/jitter)
+    pub wander_rate: f32,
     /// Current angle on the wander circle (persisted state)
-    wander_angle: f32,
+    pub wander_angle: f32,
 }
 
 impl Default for Wander {

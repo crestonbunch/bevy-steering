@@ -8,14 +8,18 @@ use crate::{
     control::{BehaviorType, SteeringOutputs},
 };
 
+/// Approach behavior attempts to move the agent towards a target position.
+/// Similar to Seek, except the agent slows down as it gets closer to the target.
 #[derive(Component, Debug, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Approach {
-    target_radius: f32,
-    target: Vec3,
+    /// The radius within which the agent will approach the target.
+    pub target_radius: f32,
+    /// The target position to approach.
+    pub target: Vec3,
     /// Distance at which the agent begins slowing down when approaching at max speed.
     /// At this distance, speed = 1.0; closer distances result in proportionally lower speeds.
-    slowdown_distance: f32,
+    pub slowdown_distance: f32,
 }
 
 impl Default for Approach {

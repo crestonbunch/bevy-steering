@@ -8,11 +8,15 @@ use crate::{
     control::{BehaviorType, SteeringOutputs},
 };
 
+/// Seek behavior moves the agent towards the target position. Does not
+/// slow down on approach (see Approach for a smoother approach.)
 #[derive(Component, Debug, Default, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Seek {
-    target_radius: f32,
-    target: Vec3,
+    /// The radius within which the agent will consider itself to be at the target.
+    pub target_radius: f32,
+    /// The position the agent is trying to reach.
+    pub target: Vec3,
 }
 
 impl Seek {

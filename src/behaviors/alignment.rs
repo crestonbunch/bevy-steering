@@ -10,6 +10,7 @@ use crate::{
     neighbors::Neighborhood,
 };
 
+/// Align behavior attempts to match the velocity and direction of nearby neighbors.
 #[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derivative(Default)]

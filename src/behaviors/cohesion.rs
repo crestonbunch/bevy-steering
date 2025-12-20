@@ -10,13 +10,14 @@ use crate::{
     neighbors::Neighborhood,
 };
 
+/// Cohesion behavior attempts to maintain proximity to nearby neighbors.
 #[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derivative(Default)]
 pub struct Cohere {
     /// Below this distance from center of mass, no cohesion is applied
     #[derivative(Default(value = "0.0"))]
-    radius: f32,
+    pub radius: f32,
 }
 
 impl Cohere {

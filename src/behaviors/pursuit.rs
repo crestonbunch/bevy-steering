@@ -15,13 +15,13 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Pursuit {
     /// The entity being pursued
-    target: Entity,
+    pub target: Entity,
     /// Maximum time to predict ahead (in seconds)
-    max_prediction_time: f32,
+    pub max_prediction_time: f32,
     /// Radius within which to stop pursuing (arrival threshold)
-    radius: f32,
+    pub radius: f32,
     /// Offset radius for offset pursuit (0.0 = direct pursuit)
-    offset: f32,
+    pub offset: f32,
 }
 
 impl Pursuit {

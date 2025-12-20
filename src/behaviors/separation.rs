@@ -10,14 +10,19 @@ use crate::{
     neighbors::Neighborhood,
 };
 
+/// Separation behavior attempts to maintain distance from nearby neighbors.
 #[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
 #[derivative(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Separate {
+    /// The desired separation radius. Agents will try to maintain this
+    /// distance from neighbors.
     #[derivative(Default(value = "10.0"))]
-    desired_radius: f32,
+    pub desired_radius: f32,
+    /// The panic radius. This is a much harder constraint, making the agent
+    /// extremely unlikely to do anything except separate.
     #[derivative(Default(value = "1.0"))]
-    panic_radius: f32,
+    pub panic_radius: f32,
 }
 
 impl Separate {

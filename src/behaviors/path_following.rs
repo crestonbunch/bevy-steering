@@ -17,16 +17,16 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct PathFollowing {
     /// The points that make up the path spine (polyline)
-    path: Vec<Vec3>,
+    pub path: Vec<Vec3>,
     /// The radius of the path tube
     #[derivative(Default(value = "1.0"))]
-    path_radius: f32,
+    pub path_radius: f32,
     /// How far ahead to predict the character's future position (in time units)
     #[derivative(Default(value = "1.0"))]
-    prediction_time: f32,
+    pub prediction_time: f32,
     /// How far ahead along the path to look for the target point
     #[derivative(Default(value = "1.0"))]
-    target_distance: f32,
+    pub target_distance: f32,
 }
 
 impl PathFollowing {

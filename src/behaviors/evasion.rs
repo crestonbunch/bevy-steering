@@ -14,12 +14,12 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Evasion {
     /// The entity to evade from
-    target: Entity,
+    pub target: Entity,
     /// Maximum time to predict ahead (in seconds)
-    max_prediction_time: f32,
+    pub max_prediction_time: f32,
     /// Radius within which to evade (only evade when threat is predicted to
     /// get closer than this)
-    radius: f32,
+    pub radius: f32,
 }
 
 impl Evasion {

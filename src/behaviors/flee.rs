@@ -9,13 +9,17 @@ use crate::{
     control::{BehaviorType, SteeringOutputs},
 };
 
+/// Flee behavior attempts to put distance between the agent and a target position.
+/// Essentially the opposite of Seek.
 #[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[derivative(Default)]
 pub struct Flee {
+    /// The radius within which the agent will flee from the target.
     #[derivative(Default(value = "f32::MAX"))]
-    radius: f32,
-    target: Vec3,
+    pub radius: f32,
+    /// The target position to flee from.
+    pub target: Vec3,
 }
 
 impl Flee {

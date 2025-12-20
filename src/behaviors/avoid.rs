@@ -27,8 +27,10 @@ pub struct Avoid {
     /// How far ahead to look for obstacles
     #[derivative(Default(value = "5.0"))]
     pub cast_distance: f32,
+    /// The layer mask used for obstacle detection
     #[derivative(Default(value = "LayerMask::DEFAULT"))]
     pub avoid_mask: LayerMask,
+    /// Entities to ignore when avoiding obstacles
     pub ignore_entites: Vec<Entity>,
 }
 
