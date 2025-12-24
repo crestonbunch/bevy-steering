@@ -18,6 +18,7 @@ use crate::{
 /// obstacles that are directly in front.
 #[derive(Component, Debug, Clone, Reflect, Derivative)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
 #[component(on_add = on_avoid_added, on_remove = on_avoid_removed)]
 pub struct Avoid {

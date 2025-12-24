@@ -4,7 +4,8 @@ use crate::{
     behaviors::{
         alignment, approach, avoid, cohesion,
         evasion::{self as evasion_behavior, debug_evasion},
-        flee, path_following,
+        flee,
+        path_following::{self, debug_path_following},
         pursuit::{self, debug_pursuit},
         seek,
         separation::{self, debug_separation},
@@ -68,6 +69,7 @@ impl Plugin for DebugSteeringPlugin {
             debug_separation,
             debug_evasion,
             debug_pursuit,
+            debug_path_following,
             debug_combined_steering,
             debug_movement,
         )

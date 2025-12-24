@@ -13,6 +13,7 @@ use crate::{
 /// Essentially the opposite of Seek.
 #[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
 pub struct Flee {
     /// The radius within which the agent will flee from the target.

@@ -1,5 +1,6 @@
 use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
+use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
@@ -10,15 +11,19 @@ use crate::{
 
 /// Evasion behavior that predicts the future position of a pursuing target
 /// and steers away from it. The evasive counterpart to Pursuit.
-#[derive(Component, Debug, Copy, Clone, Reflect)]
+#[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
+#[derivative(Default)]
 pub struct Evasion {
     /// The entity to evade from
-    pub target: Entity,
+    pub target: Option<Entity>,
     /// Maximum time to predict ahead (in seconds)
+    #[derivative(Default(value = "1.0"))]
     pub max_prediction_time: f32,
     /// Radius within which to evade (only evade when threat is predicted to
     /// get closer than this)
+    #[derivative(Default(value = "f32::MAX"))]
     pub radius: f32,
 }
 
@@ -26,9 +31,8 @@ impl Evasion {
     /// Create a new Evasion behavior targeting the specified entity
     pub fn new(target: Entity) -> Self {
         Self {
-            target,
-            max_prediction_time: 1.0,
-            radius: f32::MAX,
+            target: Some(target),
+            ..Default::default()
         }
     }
 
@@ -81,6 +85,12 @@ pub(crate) fn run(
     // Process each evader
     for (entity, target_entity, agent_pos, max_speed, max_prediction, evasion_radius) in evaders {
         // Look up the threat's transform and velocity
+        let Some(target_entity) = target_entity else {
+            if let Ok(mut item) = agent_query.get_mut(entity) {
+                item.outputs.clear(BehaviorType::Evasion);
+            }
+            continue;
+        };
         let Ok((target_transform, target_velocity)) = target_query.get(target_entity) else {
             if let Ok(mut item) = agent_query.get_mut(entity) {
                 item.outputs.clear(BehaviorType::Evasion);
@@ -163,8 +173,12 @@ pub(crate) fn debug_evasion(
             }
         }
 
+        let Some(target_entity) = evasion.target else {
+            continue;
+        };
+
         // Draw line from evader to threat with arrow pointing away
-        if let Ok(target_transform) = target_query.get(evasion.target) {
+        if let Ok(target_transform) = target_query.get(target_entity) {
             let target_pos = target_transform.translation();
 
             // Line from threat to evader (showing evasion)

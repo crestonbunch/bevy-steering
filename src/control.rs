@@ -342,7 +342,7 @@ pub(crate) fn debug_combined_steering(
     mut gizmos: Gizmos,
     query: Query<(&GlobalTransform, &CombinedSteeringTarget)>,
 ) {
-    const BASE_LINE_LENGTH: f32 = 2.0;
+    const BASE_LINE_LENGTH: f32 = 8.0;
 
     for (transform, combined_target) in query.iter() {
         let agent_position = transform.translation();

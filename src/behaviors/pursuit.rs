@@ -1,5 +1,6 @@
 use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
+use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
@@ -11,16 +12,21 @@ use crate::{
 /// Pursuit behavior that predicts the future position of a moving target
 /// and steers toward it. More effective than simple seek when chasing
 /// moving targets. Supports offset pursuit for fly-by maneuvers.
-#[derive(Component, Debug, Copy, Clone, Reflect)]
+#[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
+#[derivative(Default)]
 pub struct Pursuit {
     /// The entity being pursued
-    pub target: Entity,
+    pub target: Option<Entity>,
     /// Maximum time to predict ahead (in seconds)
+    #[derivative(Default(value = "1.0"))]
     pub max_prediction_time: f32,
     /// Radius within which to stop pursuing (arrival threshold)
+    #[derivative(Default(value = "1.0"))]
     pub radius: f32,
     /// Offset radius for offset pursuit (0.0 = direct pursuit)
+    #[derivative(Default(value = "0.0"))]
     pub offset: f32,
 }
 
@@ -28,10 +34,8 @@ impl Pursuit {
     /// Create a new Pursuit behavior targeting the specified entity
     pub fn new(target: Entity) -> Self {
         Self {
-            target,
-            max_prediction_time: 1.0,
-            radius: 1.0,
-            offset: 0.0,
+            target: Some(target),
+            ..Default::default()
         }
     }
 
@@ -95,6 +99,12 @@ pub(crate) fn run(
     for (entity, target_entity, agent_pos, max_speed, max_prediction, arrival_radius, offset) in
         pursuers
     {
+        let Some(target_entity) = target_entity else {
+            if let Ok(mut item) = agent_query.get_mut(entity) {
+                item.outputs.clear(BehaviorType::Pursuit);
+            }
+            continue;
+        };
         // Look up the target's transform and velocity
         let Ok((target_transform, target_velocity)) = target_query.get(target_entity) else {
             if let Ok(mut item) = agent_query.get_mut(entity) {
@@ -189,8 +199,12 @@ pub(crate) fn debug_pursuit(
             gizmos.line(p1, p2, Color::srgb(0.3, 1.0, 0.3).with_alpha(0.3));
         }
 
+        let Some(target_entity) = pursuit.target else {
+            continue;
+        };
+
         // Draw line to target with arrow
-        if let Ok(target_transform) = target_query.get(pursuit.target) {
+        if let Ok(target_transform) = target_query.get(target_entity) {
             let target_pos = target_transform.translation();
 
             // Line from pursuer to target

@@ -12,6 +12,7 @@ use crate::{
 /// slow down on approach (see Approach for a smoother approach.)
 #[derive(Component, Debug, Default, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
 pub struct Seek {
     /// The radius within which the agent will consider itself to be at the target.
     pub target_radius: f32,

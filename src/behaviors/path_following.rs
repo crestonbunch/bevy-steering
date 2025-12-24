@@ -15,6 +15,7 @@ use crate::{
 #[derive(Component, Debug, Clone, Reflect, Derivative)]
 #[derivative(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
 pub struct PathFollowing {
     /// The points that make up the path spine (polyline)
     pub path: Vec<Vec3>,
@@ -229,5 +230,92 @@ pub(crate) fn run(mut query: Query<PathFollowingBehaviorAgentQuery>) {
         steering_target.set_interest(to_target.normalize());
         item.outputs
             .set(BehaviorType::PathFollowing, steering_target);
+    }
+}
+
+/// Debug visualization for path following behavior.
+/// Shows waypoints, path connections, path radius, predicted position, and target points.
+pub(crate) fn debug_path_following(
+    mut gizmos: Gizmos,
+    query: Query<(&PathFollowing, &GlobalTransform, &LinearVelocity)>,
+) {
+    for (path_following, global_transform, velocity) in query.iter() {
+        if path_following.path.is_empty() {
+            continue;
+        }
+
+        let agent_pos = global_transform.translation();
+        let agent_velocity = **velocity;
+
+        // Draw waypoints as small spheres
+        for waypoint in &path_following.path {
+            gizmos.sphere(*waypoint, 0.2, Color::srgb(0.0, 1.0, 1.0)); // Cyan waypoints
+        }
+
+        // Draw path connections
+        for i in 0..path_following.path.len() - 1 {
+            let start = path_following.path[i];
+            let end = path_following.path[i + 1];
+            gizmos.line(start, end, Color::srgb(0.0, 0.8, 0.8)); // Cyan line
+        }
+
+        // Draw path radius as circles at each waypoint
+        for waypoint in &path_following.path {
+            gizmos.circle(
+                Isometry3d::new(*waypoint, Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
+                path_following.path_radius,
+                Color::srgb(0.0, 1.0, 1.0).with_alpha(0.3), // Semi-transparent cyan
+            );
+        }
+
+        // Draw path radius as circles along segments
+        for i in 0..path_following.path.len() - 1 {
+            let start = path_following.path[i];
+            let end = path_following.path[i + 1];
+            let segment_length = (end - start).length();
+            let num_circles = (segment_length / path_following.path_radius).max(1.0) as usize;
+
+            for j in 0..num_circles {
+                let t = j as f32 / num_circles as f32;
+                let point = start + (end - start) * t;
+                gizmos.circle(
+                    Isometry3d::new(point, Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
+                    path_following.path_radius,
+                    Color::srgb(0.0, 1.0, 1.0).with_alpha(0.1), // Very transparent cyan
+                );
+            }
+        }
+
+        // Draw predicted position
+        let predicted_pos = agent_pos + agent_velocity * path_following.prediction_time;
+        gizmos.sphere(predicted_pos, 0.3, Color::srgb(1.0, 1.0, 0.0)); // Yellow predicted position
+        gizmos.line(agent_pos, predicted_pos, Color::srgba(1.0, 1.0, 0.0, 0.5)); // Yellow line to predicted
+
+        // Find and draw nearest point on path
+        if let Some((nearest_point, dist_sq, segment_index)) =
+            path_following.nearest_point_on_path(predicted_pos)
+        {
+            let distance = dist_sq.sqrt();
+
+            // Draw nearest point
+            gizmos.sphere(nearest_point, 0.25, Color::srgb(1.0, 0.5, 0.0)); // Orange nearest point
+            gizmos.line(predicted_pos, nearest_point, Color::srgba(1.0, 0.5, 0.0, 0.5)); // Orange line
+
+            // Draw target point ahead
+            let target_point = path_following.target_point_ahead(nearest_point, segment_index);
+            gizmos.sphere(target_point, 0.3, Color::srgb(0.0, 1.0, 0.0)); // Green target point
+            gizmos.line(nearest_point, target_point, Color::srgba(0.0, 1.0, 0.0, 0.5)); // Green line
+
+            // Draw the seek target (what the agent is actually steering towards)
+            let seek_target = if distance > path_following.path_radius {
+                nearest_point
+            } else {
+                target_point
+            };
+            gizmos.line(agent_pos, seek_target, Color::srgb(1.0, 0.0, 1.0)); // Magenta line to seek target
+
+            // Draw a larger sphere around the active seek target
+            gizmos.sphere(seek_target, 0.4, Color::srgba(1.0, 0.0, 1.0, 0.3)); // Semi-transparent magenta
+        }
     }
 }

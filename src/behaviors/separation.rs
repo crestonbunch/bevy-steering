@@ -14,6 +14,7 @@ use crate::{
 #[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
 #[derivative(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
 pub struct Separate {
     /// The desired separation radius. Agents will try to maintain this
     /// distance from neighbors.

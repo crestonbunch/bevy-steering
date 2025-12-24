@@ -14,6 +14,7 @@ use crate::{
 /// This produces more interesting, sustained turns compared to purely random steering.
 #[derive(Component, Debug, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
 pub struct Wander {
     /// Distance ahead of the character where the wander sphere is projected
     pub wander_distance: f32,

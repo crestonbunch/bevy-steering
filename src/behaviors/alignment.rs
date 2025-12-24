@@ -1,8 +1,5 @@
 use avian3d::prelude::LinearVelocity;
 use bevy::{ecs::query::QueryData, prelude::*};
-use derivative::Derivative;
-#[cfg(feature = "serialize")]
-use serde::{Deserialize, Serialize};
 
 use crate::{
     agent::SteeringAgent,
@@ -11,9 +8,7 @@ use crate::{
 };
 
 /// Align behavior attempts to match the velocity and direction of nearby neighbors.
-#[derive(Component, Debug, Copy, Clone, Reflect, Derivative)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[derivative(Default)]
+#[derive(Component, Default, Debug, Copy, Clone, Reflect)]
 pub struct Align;
 
 #[derive(QueryData)]

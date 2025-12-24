@@ -31,6 +31,7 @@ pub enum SteeringLocomotionMode {
 /// to the agent to give it steering behavior.
 #[derive(Component, Clone, Debug, Reflect, Derivative)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
 #[require(Neighbor, Neighborhood, SteeringOutputs)]
 #[reflect(Component)]

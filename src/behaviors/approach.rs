@@ -12,6 +12,7 @@ use crate::{
 /// Similar to Seek, except the agent slows down as it gets closer to the target.
 #[derive(Component, Debug, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serialize", serde(default))]
 pub struct Approach {
     /// The radius within which the agent will approach the target.
     pub target_radius: f32,
