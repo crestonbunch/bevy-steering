@@ -1,6 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{
     ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    platform::collections::HashSet,
     prelude::*,
 };
 use derivative::Derivative;
@@ -65,21 +66,22 @@ impl Avoid {
 /// Hook called when Avoid component is added to an entity.
 /// Adds a ShapeCaster component for obstacle detection.
 fn on_avoid_added(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
-    let avoid = world.get::<Avoid>(entity);
-    if let Some(avoid) = avoid {
-        let filter = SpatialQueryFilter::from_mask(avoid.avoid_mask)
-            .with_excluded_entities(avoid.ignore_entites.clone());
-        let shape_caster = ShapeCaster::new(
-            Collider::sphere(avoid.cast_radius),
-            Vec3::ZERO,
-            Quat::IDENTITY,
-            Dir3::NEG_Z, // Cast forward (local -Z is typically forward in Bevy)
-        )
-        .with_query_filter(filter)
-        .with_max_distance(avoid.cast_distance)
-        .with_max_hits(1);
-        world.commands().entity(entity).insert(shape_caster);
-    }
+    let Some(avoid) = world.get::<Avoid>(entity).cloned() else {
+        return;
+    };
+
+    let filter = SpatialQueryFilter::from_mask(avoid.avoid_mask)
+        .with_excluded_entities(avoid.ignore_entites);
+    let shape_caster = ShapeCaster::new(
+        Collider::sphere(avoid.cast_radius),
+        Vec3::ZERO,
+        Quat::IDENTITY,
+        Dir3::NEG_Z, // Cast forward (local -Z is typically forward in Bevy)
+    )
+    .with_query_filter(filter)
+    .with_max_distance(avoid.cast_distance)
+    .with_max_hits(5);
+    world.commands().entity(entity).insert(shape_caster);
 }
 
 /// Hook called when Avoid component is removed from an entity.
@@ -94,6 +96,7 @@ fn on_avoid_removed(mut world: DeferredWorld, HookContext { entity, .. }: HookCo
 #[derive(QueryData)]
 #[query_data(mutable)]
 pub struct AvoidBehaviorAgentQuery {
+    entity: Entity,
     agent: &'static SteeringAgent,
     avoid: &'static Avoid,
     global_transform: &'static GlobalTransform,
@@ -101,14 +104,25 @@ pub struct AvoidBehaviorAgentQuery {
     outputs: &'static mut SteeringOutputs,
 }
 
-pub(crate) fn run(mut query: Query<AvoidBehaviorAgentQuery>) {
+pub(crate) fn run(
+    mut query: Query<AvoidBehaviorAgentQuery>,
+    collider_of_query: Query<&ColliderOf>,
+) {
     for mut agent in query.iter_mut() {
         let Some(shape_hits) = agent.shape_hits else {
             agent.outputs.clear(BehaviorType::Avoid);
             continue;
         };
 
-        let Some(hit) = shape_hits.iter().next() else {
+        // TODO: make a more efficient way to filter out self-collisions
+        let colliders = collider_of_query
+            .iter()
+            .filter(|h| h.body != agent.entity)
+            .map(|h| h.body)
+            .collect::<HashSet<_>>();
+
+        let next_hit = shape_hits.iter().find(|h| colliders.contains(&h.entity));
+        let Some(hit) = next_hit else {
             agent.outputs.clear(BehaviorType::Avoid);
             continue;
         };
