@@ -1,7 +1,8 @@
+use std::f32::consts::FRAC_PI_4;
+
 use avian3d::prelude::*;
 use bevy::{
     ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
-    platform::collections::HashSet,
     prelude::*,
 };
 use derivative::Derivative;
@@ -34,6 +35,9 @@ pub struct Avoid {
     pub avoid_mask: LayerMask,
     /// Entities to ignore when avoiding obstacles
     pub ignore_entites: Vec<Entity>,
+    /// Half-angle of the danger cone (radians). Default PI/4 (45 deg).
+    #[derivative(Default(value = "FRAC_PI_4"))]
+    pub danger_cone_angle: f32,
 }
 
 impl Avoid {
@@ -59,6 +63,12 @@ impl Avoid {
     /// Ignore entities in this set. Do not avoid them.
     pub fn with_ignored_entities(mut self, entities: Vec<Entity>) -> Self {
         self.ignore_entites = entities;
+        self
+    }
+
+    /// Set the half-angle of the danger cone (radians).
+    pub fn with_danger_cone_angle(mut self, angle: f32) -> Self {
+        self.danger_cone_angle = angle.max(0.01);
         self
     }
 }
@@ -98,30 +108,24 @@ fn on_avoid_removed(mut world: DeferredWorld, HookContext { entity, .. }: HookCo
 pub struct AvoidBehaviorAgentQuery {
     entity: Entity,
     agent: &'static SteeringAgent,
+    colliders: &'static RigidBodyColliders,
     avoid: &'static Avoid,
     global_transform: &'static GlobalTransform,
     shape_hits: Option<&'static ShapeHits>,
     outputs: &'static mut SteeringOutputs,
 }
 
-pub(crate) fn run(
-    mut query: Query<AvoidBehaviorAgentQuery>,
-    collider_of_query: Query<&ColliderOf>,
-) {
+pub(crate) fn run(mut query: Query<AvoidBehaviorAgentQuery>) {
     for mut agent in query.iter_mut() {
         let Some(shape_hits) = agent.shape_hits else {
             agent.outputs.clear(BehaviorType::Avoid);
             continue;
         };
 
-        // TODO: make a more efficient way to filter out self-collisions
-        let colliders = collider_of_query
+        let next_hit = shape_hits
             .iter()
-            .filter(|h| h.body != agent.entity)
-            .map(|h| h.body)
-            .collect::<HashSet<_>>();
+            .find(|h| !agent.colliders.contains(&h.entity));
 
-        let next_hit = shape_hits.iter().find(|h| colliders.contains(&h.entity));
         let Some(hit) = next_hit else {
             agent.outputs.clear(BehaviorType::Avoid);
             continue;
@@ -136,7 +140,7 @@ pub(crate) fn run(
         let mut target = SteeringTarget::default();
 
         // Set danger to avoid obstacle.
-        target.add_danger(direction, 1.0);
+        target.add_danger(direction, 1.0, agent.avoid.danger_cone_angle);
         agent.outputs.set(BehaviorType::Avoid, target);
     }
 }

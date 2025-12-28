@@ -1,3 +1,5 @@
+use std::f32::consts::FRAC_PI_3;
+
 use avian3d::prelude::LinearVelocity;
 use bevy::{ecs::query::QueryData, prelude::*};
 use derivative::Derivative;
@@ -24,6 +26,9 @@ pub struct Separate {
     /// extremely unlikely to do anything except separate.
     #[derivative(Default(value = "1.0"))]
     pub panic_radius: f32,
+    /// Half-angle of the danger cone (radians). Default PI/3 (60 deg).
+    #[derivative(Default(value = "FRAC_PI_3"))]
+    pub danger_cone_angle: f32,
 }
 
 impl Separate {
@@ -39,6 +44,12 @@ impl Separate {
     /// except separate.
     pub fn with_panic_radius(mut self, radius: f32) -> Self {
         self.panic_radius = radius;
+        self
+    }
+
+    /// Set the half-angle of the danger cone (radians).
+    pub fn with_danger_cone_angle(mut self, angle: f32) -> Self {
+        self.danger_cone_angle = angle.max(0.01);
         self
     }
 }
@@ -95,7 +106,7 @@ pub(crate) fn run(mut query: Query<SeparationBehaviorAgentQuery>) {
             // Interest in moving away from neighbors
             // Danger in the direction toward neighbors
             target.set_interest(away_dir);
-            target.add_danger(-away_dir, max_intensity);
+            target.add_danger(-away_dir, max_intensity, agent.separate.danger_cone_angle);
             target.set_urgency(max_urgency);
             agent.target.set(BehaviorType::Separation, target);
         } else {

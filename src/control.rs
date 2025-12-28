@@ -177,17 +177,22 @@ impl SteeringTarget {
         }
     }
 
-    /// Assigns weights to each direction based on the given danger vector.
-    /// Uses the same method as `set_interest` to produce the danger
-    /// from [0.0-1.0] such that a slot exactly matching [direction] would
-    /// be 1.0, and slots perpendicular would be 0.0. Anything less than 0.0
-    /// is clamped to 0.0. Accumulates danger using max, so multiple calls
-    /// will take the maximum danger value for each slot.
-    pub fn add_danger(&mut self, direction: Vec3, intensity: f32) {
+    /// Assigns danger to directions within a cone around the given direction.
+    /// `half_angle` controls the cone width (in radians). Danger falls off
+    /// linearly from the center (full intensity) to the edge (zero).
+    /// Accumulates danger using max, so multiple calls will take the maximum
+    /// danger value for each slot.
+    pub fn add_danger(&mut self, direction: Vec3, intensity: f32, half_angle: f32) {
+        let direction = direction.normalize_or_zero();
         for i in 0..NUM_SLOTS {
             let slot_dir = SteeringTarget::slot_to_dir(i);
-            let new_danger = (slot_dir.dot(direction) * intensity).max(0.0);
-            self.danger_map[i] = self.danger_map[i].max(new_danger);
+            let cos_angle = slot_dir.dot(direction).clamp(-1.0, 1.0);
+            let angle = cos_angle.acos();
+            if angle <= half_angle {
+                let falloff = 1.0 - (angle / half_angle);
+                let new_danger = intensity * falloff;
+                self.danger_map[i] = self.danger_map[i].max(new_danger);
+            }
         }
     }
 
