@@ -1,7 +1,11 @@
 use avian3d::prelude::LinearVelocity;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 
 use crate::{
+    SMALL_THRESHOLD,
     agent::SteeringAgent,
     control::{BehaviorType, SteeringOutputs, SteeringTarget},
     neighbors::Neighborhood,
@@ -9,6 +13,7 @@ use crate::{
 
 /// Align behavior attempts to match the velocity and direction of nearby neighbors.
 #[derive(Component, Default, Debug, Copy, Clone, Reflect)]
+#[component(on_remove = on_alignment_remove)]
 pub struct Align;
 
 #[derive(QueryData)]
@@ -43,7 +48,7 @@ pub(crate) fn run(mut query: Query<AlignmentBehaviorAgentQuery>) {
         let speed = avg_velocity.length();
 
         // Skip if neighbors are stationary (avoid division by zero)
-        if speed < 0.001 {
+        if speed < SMALL_THRESHOLD {
             agent.target.clear(BehaviorType::Alignment);
             continue;
         }
@@ -54,6 +59,12 @@ pub(crate) fn run(mut query: Query<AlignmentBehaviorAgentQuery>) {
         let mut target = SteeringTarget::default();
         target.set_interest(direction);
         agent.target.set(BehaviorType::Alignment, target);
+    }
+}
+
+fn on_alignment_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Alignment);
     }
 }
 

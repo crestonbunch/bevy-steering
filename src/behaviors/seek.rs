@@ -1,5 +1,8 @@
 use avian3d::prelude::*;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +16,7 @@ use crate::{
 #[derive(Component, Debug, Default, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
+#[component(on_remove = on_seek_remove)]
 pub struct Seek {
     /// The radius within which the agent will consider itself to be at the target.
     pub target_radius: f32,
@@ -61,5 +65,11 @@ pub(crate) fn run(mut query: Query<SeekBehaviorAgentQuery>) {
         let mut steering_target = item.outputs.get(BehaviorType::Seek).unwrap_or_default();
         steering_target.set_interest(to_target.normalize());
         item.outputs.set(BehaviorType::Seek, steering_target);
+    }
+}
+
+fn on_seek_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Seek);
     }
 }

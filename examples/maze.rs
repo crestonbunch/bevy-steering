@@ -206,9 +206,7 @@ fn setup(
 
     commands.spawn((
         agent1,
-        PathFollowing::new(vec![], 5.0)
-            .with_target_distance(1.0)
-            .with_prediction_time(0.1),
+        PathFollowing::new(vec![]).with_lookahead_distance(1.0),
         // Try commenting out the Avoid behavior to see what happens!
         Avoid::default().with_distance(2.0),
         TrackNearbyObstacles::default()

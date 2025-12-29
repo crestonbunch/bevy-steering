@@ -1,5 +1,8 @@
 use avian3d::prelude::*;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
@@ -15,6 +18,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
+#[component(on_remove = on_flee_remove)]
 pub struct Flee {
     /// The radius within which the agent will flee from the target.
     #[derivative(Default(value = "f32::MAX"))]
@@ -65,5 +69,11 @@ pub(crate) fn run(mut query: Query<FleeBehaviorAgentQuery>) {
         // Flee away from the target (opposite direction of seek)
         steering_target.set_interest(-to_target.normalize());
         item.outputs.set(BehaviorType::Flee, steering_target);
+    }
+}
+
+fn on_flee_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Flee);
     }
 }

@@ -1,10 +1,14 @@
 use avian3d::prelude::LinearVelocity;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    SMALL_THRESHOLD,
     agent::SteeringAgent,
     control::{BehaviorType, SteeringOutputs, SteeringTarget},
     neighbors::Neighborhood,
@@ -15,6 +19,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
+#[component(on_remove = on_cohere_remove)]
 pub struct Cohere {
     /// Below this distance from center of mass, no cohesion is applied
     #[derivative(Default(value = "0.0"))]
@@ -64,7 +69,7 @@ pub(crate) fn run(mut query: Query<CohesionBehaviorAgentQuery>) {
         let distance = to_center.length();
 
         // Skip if already at center (avoid division by zero)
-        if distance < 0.001 {
+        if distance < SMALL_THRESHOLD {
             agent.target.clear(BehaviorType::Cohere);
             continue;
         }
@@ -81,6 +86,12 @@ pub(crate) fn run(mut query: Query<CohesionBehaviorAgentQuery>) {
         let mut target = SteeringTarget::default();
         target.set_interest(direction);
         agent.target.set(BehaviorType::Cohere, target);
+    }
+}
+
+fn on_cohere_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Cohere);
     }
 }
 

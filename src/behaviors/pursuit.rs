@@ -1,10 +1,14 @@
 use avian3d::prelude::*;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    SMALL_THRESHOLD,
     agent::SteeringAgent,
     control::{BehaviorType, SteeringOutputs},
 };
@@ -16,6 +20,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
+#[component(on_remove = on_pursuit_remove)]
 pub struct Pursuit {
     /// The entity being pursued
     pub target: Option<Entity>,
@@ -129,7 +134,7 @@ pub(crate) fn run(
 
         // Simple prediction: T = distance / max_speed
         // T is larger when far from target, smaller when near
-        let prediction_time = if max_speed > 0.001 {
+        let prediction_time = if max_speed > SMALL_THRESHOLD {
             (distance / max_speed).min(max_prediction)
         } else {
             max_prediction
@@ -139,12 +144,12 @@ pub(crate) fn run(
         let mut predicted_pos = target_pos + target_velocity * prediction_time;
 
         // Apply offset for offset pursuit (fly-by maneuver)
-        if offset.abs() > 0.001 {
+        if offset.abs() > SMALL_THRESHOLD {
             // Calculate perpendicular offset direction on the horizontal plane
             let to_predicted = predicted_pos - agent_pos;
             let horizontal_dir = Vec3::new(to_predicted.x, 0.0, to_predicted.z).normalize_or_zero();
 
-            if horizontal_dir.length_squared() > 0.001 {
+            if horizontal_dir.length_squared() > SMALL_THRESHOLD {
                 // Get perpendicular direction (rotate 90 degrees around Y axis)
                 let perpendicular = Vec3::new(-horizontal_dir.z, 0.0, horizontal_dir.x);
                 // Apply offset to create fly-by point
@@ -156,7 +161,7 @@ pub(crate) fn run(
         let to_predicted = predicted_pos - agent_pos;
         let direction = to_predicted.normalize_or_zero();
 
-        if direction.length_squared() < 0.001 {
+        if direction.length_squared() < SMALL_THRESHOLD {
             if let Ok(mut item) = agent_query.get_mut(entity) {
                 item.outputs.clear(BehaviorType::Pursuit);
             }
@@ -233,5 +238,11 @@ pub(crate) fn debug_pursuit(
                 Color::srgb(1.0, 1.0, 0.0).with_alpha(0.6),
             );
         }
+    }
+}
+
+fn on_pursuit_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Pursuit);
     }
 }

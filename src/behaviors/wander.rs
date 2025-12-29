@@ -1,5 +1,8 @@
 use avian3d::prelude::*;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
@@ -15,6 +18,7 @@ use crate::{
 #[derive(Component, Debug, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
+#[component(on_remove = on_wander_remove)]
 pub struct Wander {
     /// Distance ahead of the character where the wander sphere is projected
     pub wander_distance: f32,
@@ -104,5 +108,11 @@ pub(crate) fn run(mut query: Query<WanderBehaviorAgentQuery>, mut rng: Local<Opt
         let mut steering_target = item.outputs.get(BehaviorType::Wander).unwrap_or_default();
         steering_target.set_interest(to_target.normalize());
         item.outputs.set(BehaviorType::Wander, steering_target);
+    }
+}
+
+fn on_wander_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Wander);
     }
 }

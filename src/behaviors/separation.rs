@@ -1,10 +1,14 @@
 use avian3d::prelude::LinearVelocity;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    SMALL_THRESHOLD,
     agent::SteeringAgent,
     control::{BehaviorType, SteeringOutputs, SteeringTarget},
     neighbors::Neighborhood,
@@ -15,6 +19,7 @@ use crate::{
 #[derivative(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
+#[component(on_remove = on_separate_remove)]
 pub struct Separate {
     /// The desired separation radius. Agents will try to maintain this
     /// distance from neighbors.
@@ -56,7 +61,7 @@ pub(crate) fn run(mut query: Query<SeparationBehaviorAgentQuery>) {
             let distance = away.length();
 
             // Skip if outside desired separation or too close (avoid division by zero)
-            if distance >= agent.separate.desired_radius || distance < 0.001 {
+            if distance >= agent.separate.desired_radius || distance < SMALL_THRESHOLD {
                 continue;
             }
 
@@ -69,7 +74,7 @@ pub(crate) fn run(mut query: Query<SeparationBehaviorAgentQuery>) {
 
         // Only set target if we have neighbors to separate from
         let away_dir = combined_away.normalize_or_zero();
-        if away_dir.length_squared() > f32::EPSILON {
+        if away_dir.length_squared() > SMALL_THRESHOLD {
             let mut target = SteeringTarget::default();
             // Interest in moving away from neighbors
             // Danger in the direction toward neighbors
@@ -94,6 +99,12 @@ pub(crate) fn debug_separation(
             separate.desired_radius,
             Color::srgb(1.0, 1.0, 0.0),
         );
+    }
+}
+
+fn on_separate_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Separation);
     }
 }
 

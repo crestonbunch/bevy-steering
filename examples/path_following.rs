@@ -26,15 +26,6 @@ fn draw_path_gizmos(mut gizmos: Gizmos, query: Query<&PathFollowing>) {
         for point in path {
             gizmos.sphere(*point, 0.3, Color::srgb(0.0, 0.6, 1.0));
         }
-
-        // Draw the path radius as circles at each point
-        for point in path {
-            gizmos.circle(
-                Isometry3d::new(*point, Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
-                path_following.path_radius(),
-                Color::srgb(0.0, 0.4, 0.6).with_alpha(0.3),
-            );
-        }
     }
 }
 
@@ -70,7 +61,7 @@ fn setup(
     // Agent 1 - Omnidirectional (sphere)
     commands.spawn((
         agent1,
-        PathFollowing::new(path.clone(), 2.0).with_prediction_time(0.5),
+        PathFollowing::new(path.clone()),
         Transform::from_translation(Vec3::new(-10.0, 0.0, -10.0)),
         RigidBody::Dynamic,
         Collider::sphere(0.5),
@@ -84,7 +75,7 @@ fn setup(
     // Agent 2 - Directional (cuboid)
     commands.spawn((
         agent2,
-        PathFollowing::new(path.clone(), 2.5).with_prediction_time(0.8),
+        PathFollowing::new(path.clone()),
         Transform::from_translation(Vec3::new(-5.0, 0.0, -5.0))
             .looking_at(Vec3::new(0.0, 0.0, -8.0), Vec3::Y),
         RigidBody::Dynamic,

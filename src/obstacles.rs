@@ -7,7 +7,7 @@ use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
-use crate::agent::SteeringAgent;
+use crate::{SMALL_THRESHOLD, agent::SteeringAgent};
 
 /// A component that finds obstacles within a certain distance. Nearby
 /// obstacles will be stored in the [NearbyObstacles] component.
@@ -128,7 +128,7 @@ pub(crate) fn update_nearby_obstacles(
         obstacles.clear();
 
         let agent_velocity = agent_query_item.velocity;
-        let agent_dir = if agent_velocity.length_squared() > 0.001 {
+        let agent_dir = if agent_velocity.length_squared() > SMALL_THRESHOLD {
             Dir3::new_unchecked(agent_velocity.normalize())
         } else {
             agent_query_item.transform.forward()

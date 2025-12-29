@@ -1,10 +1,14 @@
 use avian3d::prelude::*;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    SMALL_THRESHOLD,
     agent::SteeringAgent,
     control::{BehaviorType, SteeringOutputs},
 };
@@ -15,6 +19,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
+#[component(on_remove = on_evasion_remove)]
 pub struct Evasion {
     /// The entity to evade from
     pub target: Option<Entity>,
@@ -106,7 +111,7 @@ pub(crate) fn run(
 
         // Simple prediction: T = distance / max_speed
         // T is larger when far from threat, smaller when near
-        let prediction_time = if max_speed > 0.001 {
+        let prediction_time = if max_speed > SMALL_THRESHOLD {
             (distance / max_speed).min(max_prediction)
         } else {
             max_prediction
@@ -128,7 +133,7 @@ pub(crate) fn run(
         let from_predicted = agent_pos - predicted_pos;
         let direction = from_predicted.normalize_or_zero();
 
-        if direction.length_squared() < 0.001 {
+        if direction.length_squared() < SMALL_THRESHOLD {
             if let Ok(mut item) = agent_query.get_mut(entity) {
                 item.outputs.clear(BehaviorType::Evasion);
             }
@@ -207,5 +212,11 @@ pub(crate) fn debug_evasion(
                 Color::srgb(1.0, 0.3, 0.0).with_alpha(0.6),
             );
         }
+    }
+}
+
+fn on_evasion_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Evasion);
     }
 }

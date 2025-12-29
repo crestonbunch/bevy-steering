@@ -1,5 +1,8 @@
 use avian3d::prelude::*;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
@@ -21,6 +24,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[require(TrackNearbyObstacles)]
+#[component(on_remove = on_avoid_remove)]
 pub struct Avoid {
     /// Only avoid obstacles whose nearest point is at most this distance away.
     #[derivative(Default(value = "1.0"))]
@@ -63,5 +67,11 @@ pub(crate) fn run(mut query: Query<AvoidBehaviorAgentQuery>) {
         }
 
         agent.outputs.set(BehaviorType::Avoid, target);
+    }
+}
+
+fn on_avoid_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Avoid);
     }
 }

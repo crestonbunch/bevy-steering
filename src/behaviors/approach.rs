@@ -1,5 +1,8 @@
 use avian3d::prelude::*;
-use bevy::{ecs::query::QueryData, prelude::*};
+use bevy::{
+    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
+    prelude::*,
+};
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +17,7 @@ use crate::{
 #[derive(Component, Debug, Copy, Clone, Reflect)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
+#[component(on_remove = on_approach_remove)]
 pub struct Approach {
     /// The radius within which the agent will approach the target.
     pub target_radius: f32,
@@ -111,5 +115,11 @@ pub(crate) fn debug_approach(mut gizmos: Gizmos, query: Query<(&GlobalTransform,
                 yellow,
             );
         }
+    }
+}
+
+fn on_approach_remove(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
+    if let Some(mut outputs) = world.get_mut::<SteeringOutputs>(entity) {
+        outputs.clear(BehaviorType::Approach);
     }
 }
