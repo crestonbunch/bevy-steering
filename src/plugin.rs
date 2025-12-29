@@ -2,7 +2,9 @@ use bevy::prelude::*;
 
 use crate::{
     behaviors::{
-        alignment, approach, avoid, cohesion,
+        alignment,
+        approach::{self, debug_approach},
+        avoid, cohesion,
         evasion::{self as evasion_behavior, debug_evasion},
         flee,
         path_following::{self, debug_path_following},
@@ -17,6 +19,8 @@ use crate::{
     },
     movement::{debug_movement, move_agent},
     neighbors::{debug_neighborhoods, update_neighborhoods},
+    obstacles::{debug_obstacles, update_nearby_obstacles},
+    speed::{debug_speed, reset_speed_override, speed_control},
 };
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
@@ -44,8 +48,10 @@ impl Plugin for SteeringPlugin {
         )
             .in_set(BehaviorSystemSet);
         let update_systems = (
+            update_nearby_obstacles,
             update_neighborhoods,
             behavior_systems,
+            speed_control,
             temporal_smoothing,
             update_previous_steering_outputs,
             combine_steering_targets,
@@ -53,6 +59,7 @@ impl Plugin for SteeringPlugin {
         )
             .chain()
             .in_set(SteeringSystemSet);
+        app.add_systems(FixedPreUpdate, reset_speed_override);
         app.add_systems(FixedUpdate, update_systems);
     }
 }
@@ -65,15 +72,18 @@ pub struct DebugSteeringPlugin;
 impl Plugin for DebugSteeringPlugin {
     fn build(&self, app: &mut App) {
         let debug_systems = (
+            debug_approach,
+            debug_obstacles,
             debug_neighborhoods,
             debug_separation,
             debug_evasion,
             debug_pursuit,
             debug_path_following,
+            debug_speed,
             debug_combined_steering,
             debug_movement,
         )
             .in_set(DebugSteeringSystem);
-        app.add_systems(Update, debug_systems);
+        app.add_systems(FixedUpdate, debug_systems);
     }
 }

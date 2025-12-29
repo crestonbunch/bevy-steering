@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     control::SteeringOutputs,
     neighbors::{Neighbor, Neighborhood},
+    speed::SpeedController,
 };
 
 /// Determine how the agent will move. This will determine how
@@ -33,7 +34,7 @@ pub enum SteeringLocomotionMode {
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
-#[require(Neighbor, Neighborhood, SteeringOutputs)]
+#[require(Neighbor, Neighborhood, SteeringOutputs, SpeedController)]
 #[reflect(Component)]
 pub struct SteeringAgent {
     /// How the agent will move through the world.

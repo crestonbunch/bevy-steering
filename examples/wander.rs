@@ -55,10 +55,12 @@ fn setup(
     commands.spawn((
         agent1,
         Wander::default().with_radius(3.0).with_distance(4.0),
-        Avoid::default()
-            .with_cast_radius(0.6)
-            .with_cast_distance(6.0)
-            .with_avoid_mask(GameLayer::Obstacle.into()),
+        Avoid::default(),
+        TrackNearbyObstacles {
+            distance: 2.0,
+            avoid_mask: GameLayer::Obstacle.into(),
+            ..Default::default()
+        },
         Transform::from_translation(Vec3::new(-8.0, 0.0, 0.0)),
         RigidBody::Dynamic,
         Collider::sphere(0.5),
@@ -78,10 +80,12 @@ fn setup(
     commands.spawn((
         agent2,
         Wander::default().with_radius(1.0).with_distance(1.0),
-        Avoid::default()
-            .with_cast_radius(0.6)
-            .with_cast_distance(7.5)
-            .with_avoid_mask(GameLayer::Obstacle.into()),
+        Avoid::default(),
+        TrackNearbyObstacles {
+            distance: 2.0,
+            avoid_mask: GameLayer::Obstacle.into(),
+            ..Default::default()
+        },
         Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         RigidBody::Dynamic,
         Collider::sphere(0.5),
@@ -103,10 +107,12 @@ fn setup(
     commands.spawn((
         agent3,
         Wander::default(), // Default parameters
-        Avoid::default()
-            .with_cast_radius(0.7)
-            .with_cast_distance(6.0)
-            .with_avoid_mask(GameLayer::Obstacle.into()),
+        Avoid::default(),
+        TrackNearbyObstacles {
+            distance: 2.0,
+            avoid_mask: GameLayer::Obstacle.into(),
+            ..Default::default()
+        },
         Transform::from_translation(Vec3::new(8.0, 0.0, 0.0))
             .looking_at(Vec3::new(10.0, 0.0, 0.0), Vec3::Y),
         RigidBody::Dynamic,
@@ -127,10 +133,12 @@ fn setup(
     commands.spawn((
         agent4,
         Wander::default().with_radius(1.0).with_distance(5.0),
-        Avoid::default()
-            .with_cast_radius(0.6)
-            .with_cast_distance(6.0)
-            .with_avoid_mask(GameLayer::Obstacle.into()),
+        Avoid::default(),
+        TrackNearbyObstacles {
+            distance: 2.0,
+            avoid_mask: GameLayer::Obstacle.into(),
+            ..Default::default()
+        },
         Transform::from_translation(Vec3::new(-8.0, 0.0, -8.0)),
         RigidBody::Dynamic,
         Collider::sphere(0.5),

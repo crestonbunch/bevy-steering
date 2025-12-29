@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     agent::SteeringAgent,
     control::{BehaviorType, SteeringOutputs},
+    speed::SpeedOverride,
 };
 
 /// Approach behavior attempts to move the agent towards a target position.
@@ -63,6 +64,7 @@ pub struct ApproachBehaviorAgentQuery {
     global_transform: &'static GlobalTransform,
     forces: Forces,
     outputs: &'static mut SteeringOutputs,
+    speed_override: &'static mut SpeedOverride,
 }
 
 /// Approach behavior moves the agent towards the target position. At
@@ -86,7 +88,28 @@ pub(crate) fn run(mut query: Query<ApproachBehaviorAgentQuery>) {
 
         let mut steering_target = item.outputs.get(BehaviorType::Approach).unwrap_or_default();
         steering_target.set_interest(to_target.normalize());
-        steering_target.set_speed(speed);
         item.outputs.set(BehaviorType::Approach, steering_target);
+        item.speed_override.set(speed);
+    }
+}
+
+/// Debug visualization for approach behavior. Draws a yellow arrow to the
+/// target and a yellow circle around the target radius.
+pub(crate) fn debug_approach(mut gizmos: Gizmos, query: Query<(&GlobalTransform, &Approach)>) {
+    for (transform, approach) in query.iter() {
+        let position = transform.translation();
+        let yellow = Color::srgb(1.0, 1.0, 0.0);
+
+        // Draw arrow to target
+        gizmos.arrow(position, approach.target, yellow);
+
+        // Draw circle around target radius
+        if approach.target_radius > 0.0 {
+            gizmos.circle(
+                Isometry3d::from_translation(approach.target),
+                approach.target_radius,
+                yellow,
+            );
+        }
     }
 }

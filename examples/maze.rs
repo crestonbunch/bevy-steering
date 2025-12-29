@@ -210,10 +210,11 @@ fn setup(
             .with_target_distance(1.0)
             .with_prediction_time(0.1),
         // Try commenting out the Avoid behavior to see what happens!
-        Avoid::default()
-            .with_cast_radius(0.7)
-            .with_cast_distance(2.0)
+        Avoid::default().with_distance(2.0),
+        TrackNearbyObstacles::default()
+            .with_distance(4.0)
             .with_avoid_mask(GameLayer::Obstacle.into()),
+        SpeedController::default().with_stopping_distance(1.0),
         Transform::from_translation(Vec3::new(-12.0, 0.4, -14.0))
             .looking_at(Vec3::new(-12.0, 0.0, -6.0), Vec3::Y),
         RigidBody::Dynamic,

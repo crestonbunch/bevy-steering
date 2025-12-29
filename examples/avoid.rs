@@ -9,7 +9,7 @@ fn main() {
         .add_plugins(SteeringPlugin)
         .add_plugins(DebugSteeringPlugin)
         .add_plugins(PhysicsDebugPlugin)
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (setup, configure_gizmos))
         .run();
 }
 
@@ -19,6 +19,11 @@ enum GameLayers {
     Default,
     Agent,
     Obstacle,
+}
+
+fn configure_gizmos(mut config_store: ResMut<GizmoConfigStore>) {
+    let (config, _) = config_store.config_mut::<DefaultGizmoConfigGroup>();
+    config.depth_bias = -1.0;
 }
 
 fn setup(
@@ -93,7 +98,8 @@ fn setup(
     // Agent with Avoid and Seek behaviors
     // The agent will try to reach the target while avoiding obstacles
     let agent = SteeringAgent::default()
-        .with_max_force(Vec3::splat(5.0))
+        .with_max_speed(1.0)
+        .with_max_force(Vec3::splat(50.0))
         .directional();
 
     commands.spawn((
@@ -105,9 +111,9 @@ fn setup(
         Transform::from_xyz(-8.0, 0.5, -8.0),
         RigidBody::Dynamic,
         Collider::cuboid(0.8, 0.8, 1.5),
-        Avoid::default()
-            .with_cast_radius(0.5)
-            .with_cast_distance(5.0)
+        Avoid::default().with_distance(2.0),
+        TrackNearbyObstacles::default()
+            .with_distance(2.0)
             .with_avoid_mask(GameLayers::Obstacle.into()),
         Approach::new(Vec3::new(8.0, 0.5, 8.0), 1.0),
         CollisionLayers::new(
@@ -126,9 +132,9 @@ fn setup(
         Transform::from_xyz(-8.0, 0.5, 0.0),
         RigidBody::Dynamic,
         Collider::cuboid(0.8, 0.8, 1.5),
-        Avoid::default()
-            .with_cast_radius(0.5)
-            .with_cast_distance(10.0)
+        Avoid::default().with_distance(2.0),
+        TrackNearbyObstacles::default()
+            .with_distance(5.0)
             .with_avoid_mask(GameLayers::Obstacle.into()),
         Approach::new(Vec3::new(8.0, 0.5, 8.0), 1.0),
         CollisionLayers::new(

@@ -4,6 +4,7 @@ use bevy::{ecs::query::QueryData, prelude::*};
 use crate::{
     agent::{SteeringAgent, SteeringLocomotionMode},
     control::CombinedSteeringTarget,
+    speed::SpeedMask,
 };
 
 const DANGER_SENSITIVITY: f32 = 0.05;
@@ -12,17 +13,19 @@ const DANGER_SENSITIVITY: f32 = 0.05;
 #[query_data(mutable)]
 pub(crate) struct MoveAgentSystemQuery {
     agent: &'static SteeringAgent,
-    global_transform: &'static GlobalTransform,
     forces: Forces,
+    global_transform: &'static GlobalTransform,
     mass: &'static ComputedMass,
     moment: &'static ComputedAngularInertia,
     target: &'static CombinedSteeringTarget,
+    speed_mask: &'static SpeedMask,
 }
 
 pub(crate) fn move_agent(mut query: Query<MoveAgentSystemQuery>) {
     for mut query_item in query.iter_mut() {
         let target_heading = query_item.target.into_heading(DANGER_SENSITIVITY);
-        let target_velocity = query_item.agent.max_speed * target_heading;
+        let target_speed = query_item.speed_mask.get_speed(target_heading);
+        let target_velocity = query_item.agent.max_speed * target_speed * target_heading;
         let agent_forward = query_item.global_transform.forward();
         let agent_right = query_item.global_transform.right();
         let current_velocity = query_item.forces.linear_velocity();

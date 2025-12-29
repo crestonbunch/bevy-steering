@@ -1,10 +1,5 @@
-use std::f32::consts::FRAC_PI_4;
-
 use avian3d::prelude::*;
-use bevy::{
-    ecs::{lifecycle::HookContext, query::QueryData, world::DeferredWorld},
-    prelude::*,
-};
+use bevy::{ecs::query::QueryData, prelude::*};
 use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
@@ -12,95 +7,31 @@ use serde::{Deserialize, Serialize};
 use crate::{
     agent::SteeringAgent,
     control::{BehaviorType, SteeringOutputs, SteeringTarget},
+    prelude::{NearbyObstacles, TrackNearbyObstacles},
 };
 
 /// Avoid obstacles. This is not a replacement for navigation
 /// (e.g. A* or similar.) An agent can get stuck even with this
 /// behavior. Use this behavior so that the agent routes around
-/// obstacles that are directly in front.
+/// obstacles that are in the way. Configure obstacle detection
+/// by adding a [TrackNearbyObstacles] component, otherwise it uses
+/// a default configuration.
 #[derive(Component, Debug, Clone, Reflect, Derivative)]
+#[derivative(Default)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
-#[derivative(Default)]
-#[component(on_add = on_avoid_added, on_remove = on_avoid_removed)]
+#[require(TrackNearbyObstacles)]
 pub struct Avoid {
-    /// The radius of the sphere used for shape casting
-    #[derivative(Default(value = "0.5"))]
-    pub cast_radius: f32,
-    /// How far ahead to look for obstacles
-    #[derivative(Default(value = "5.0"))]
-    pub cast_distance: f32,
-    /// The layer mask used for obstacle detection
-    #[derivative(Default(value = "LayerMask::DEFAULT"))]
-    pub avoid_mask: LayerMask,
-    /// Entities to ignore when avoiding obstacles
-    pub ignore_entites: Vec<Entity>,
-    /// Half-angle of the danger cone (radians). Default PI/4 (45 deg).
-    #[derivative(Default(value = "FRAC_PI_4"))]
-    pub danger_cone_angle: f32,
+    /// Only avoid obstacles whose nearest point is at most this distance away.
+    #[derivative(Default(value = "1.0"))]
+    pub distance: f32,
 }
 
 impl Avoid {
-    /// Set the radius of the sphere used to detect obstacles.
-    pub fn with_cast_radius(mut self, radius: f32) -> Self {
-        self.cast_radius = radius.max(0.01);
+    pub fn with_distance(mut self, distance: f32) -> Self {
+        self.distance = distance;
         self
     }
-
-    /// Set the maximum distance to cast for obstacles.
-    pub fn with_cast_distance(mut self, distance: f32) -> Self {
-        self.cast_distance = distance.max(0.0);
-        self
-    }
-
-    /// Set the layer mask used for obstacle detection. Only avoid
-    /// obstacles that match the mask.
-    pub fn with_avoid_mask(mut self, mask: LayerMask) -> Self {
-        self.avoid_mask = mask;
-        self
-    }
-
-    /// Ignore entities in this set. Do not avoid them.
-    pub fn with_ignored_entities(mut self, entities: Vec<Entity>) -> Self {
-        self.ignore_entites = entities;
-        self
-    }
-
-    /// Set the half-angle of the danger cone (radians).
-    pub fn with_danger_cone_angle(mut self, angle: f32) -> Self {
-        self.danger_cone_angle = angle.max(0.01);
-        self
-    }
-}
-
-/// Hook called when Avoid component is added to an entity.
-/// Adds a ShapeCaster component for obstacle detection.
-fn on_avoid_added(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
-    let Some(avoid) = world.get::<Avoid>(entity).cloned() else {
-        return;
-    };
-
-    let filter = SpatialQueryFilter::from_mask(avoid.avoid_mask)
-        .with_excluded_entities(avoid.ignore_entites);
-    let shape_caster = ShapeCaster::new(
-        Collider::sphere(avoid.cast_radius),
-        Vec3::ZERO,
-        Quat::IDENTITY,
-        Dir3::NEG_Z, // Cast forward (local -Z is typically forward in Bevy)
-    )
-    .with_query_filter(filter)
-    .with_max_distance(avoid.cast_distance)
-    .with_max_hits(5);
-    world.commands().entity(entity).insert(shape_caster);
-}
-
-/// Hook called when Avoid component is removed from an entity.
-/// Removes the associated ShapeCaster component.
-fn on_avoid_removed(mut world: DeferredWorld, HookContext { entity, .. }: HookContext) {
-    world
-        .commands()
-        .entity(entity)
-        .remove::<(ShapeCaster, ShapeHits)>();
 }
 
 #[derive(QueryData)]
@@ -108,39 +39,29 @@ fn on_avoid_removed(mut world: DeferredWorld, HookContext { entity, .. }: HookCo
 pub struct AvoidBehaviorAgentQuery {
     entity: Entity,
     agent: &'static SteeringAgent,
-    colliders: &'static RigidBodyColliders,
     avoid: &'static Avoid,
+    velocity: &'static LinearVelocity,
     global_transform: &'static GlobalTransform,
-    shape_hits: Option<&'static ShapeHits>,
+    obstacles: &'static NearbyObstacles,
+    track: &'static TrackNearbyObstacles,
     outputs: &'static mut SteeringOutputs,
 }
 
 pub(crate) fn run(mut query: Query<AvoidBehaviorAgentQuery>) {
     for mut agent in query.iter_mut() {
-        let Some(shape_hits) = agent.shape_hits else {
-            agent.outputs.clear(BehaviorType::Avoid);
-            continue;
-        };
-
-        let next_hit = shape_hits
-            .iter()
-            .find(|h| !agent.colliders.contains(&h.entity));
-
-        let Some(hit) = next_hit else {
-            agent.outputs.clear(BehaviorType::Avoid);
-            continue;
-        };
-
-        // Get direction toward the obstacle
-        let agent_position = agent.global_transform.translation();
-        let to_obstacle = hit.point1 - agent_position;
-
-        // Calculate intensity based on distance (closer = stronger)
-        let direction = to_obstacle.normalize_or_zero();
         let mut target = SteeringTarget::default();
 
-        // Set danger to avoid obstacle.
-        target.add_danger(direction, 1.0, agent.avoid.danger_cone_angle);
+        for obstacle in agent.obstacles.values() {
+            if obstacle.distance > agent.avoid.distance {
+                continue;
+            }
+            let Some((agent_normal, impact_normal)) = obstacle.impact_normals else {
+                continue;
+            };
+            let dir = -(agent_normal + impact_normal) / 2.0;
+            target.set_danger(dir);
+        }
+
         agent.outputs.set(BehaviorType::Avoid, target);
     }
 }

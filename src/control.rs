@@ -115,25 +115,12 @@ pub struct SteeringTarget {
     /// used to mask interest to avoid dangerous
     /// directions when deciding a final heading.
     pub(crate) danger_map: [f32; NUM_SLOTS],
-    /// How quickly [0.0-1.0] to move. Agent will
-    /// try to reach its maximum velocity when
-    /// speed is 1.0, and will stop at 0.0. The slowest
-    /// behavior will dictate the speed.
-    #[derivative(Default(value = "1.0"))]
-    pub(crate) speed: f32,
-    /// How urgent the agent needs to move. This can
-    /// override the speed to force movement. The
-    /// max urgency of all behaviors will be used.
-    #[derivative(Default(value = "0.0"))]
-    pub(crate) urgency: f32,
 }
 
 impl SteeringTarget {
     const ZERO: Self = Self {
         interest_map: [0.0; NUM_SLOTS],
         danger_map: [0.0; NUM_SLOTS],
-        speed: 0.0,
-        urgency: 0.0,
     };
 
     pub(crate) fn slot_to_dir(slot: usize) -> Vec3 {
@@ -177,37 +164,21 @@ impl SteeringTarget {
         }
     }
 
-    /// Assigns danger to directions within a cone around the given direction.
-    /// `half_angle` controls the cone width (in radians). Danger falls off
-    /// linearly from the center (full intensity) to the edge (zero).
-    /// Accumulates danger using max, so multiple calls will take the maximum
-    /// danger value for each slot.
-    pub fn add_danger(&mut self, direction: Vec3, intensity: f32, half_angle: f32) {
+    /// Assigns danger based on the direction vector.
+    /// Uses the dot product of each slot's direction to produce the danger
+    /// from [0.0-1.0] such that a slot exactly matching [direction] would
+    /// be 1.0, and slots perpendicular would be 0.0. Anything less than 0.0
+    /// is clamped to 0.0
+    pub fn set_danger(&mut self, direction: Vec3) {
         let direction = direction.normalize_or_zero();
         for i in 0..NUM_SLOTS {
             let slot_dir = SteeringTarget::slot_to_dir(i);
-            let cos_angle = slot_dir.dot(direction).clamp(-1.0, 1.0);
-            let angle = cos_angle.acos();
-            if angle <= half_angle {
-                let falloff = 1.0 - (angle / half_angle);
-                let new_danger = intensity * falloff;
-                self.danger_map[i] = self.danger_map[i].max(new_danger);
-            }
+            self.danger_map[i] = slot_dir.dot(direction).max(0.0);
         }
     }
 
-    /// Sets the speed of the agent.
-    pub fn set_speed(&mut self, speed: f32) {
-        self.speed = speed.clamp(0.0, 1.0);
-    }
-
-    /// Sets the urgency of the agent.
-    pub fn set_urgency(&mut self, urgency: f32) {
-        self.urgency = urgency.clamp(0.0, 1.0);
-    }
-
     /// Linearly interpolates between this steering target and another.
-    /// Blends interest maps, danger maps, speed, and urgency.
+    /// Blends interest maps and danger maps.
     fn lerp(&self, other: &SteeringTarget, blend: f32) -> SteeringTarget {
         let mut result = SteeringTarget::default();
 
@@ -216,10 +187,6 @@ impl SteeringTarget {
             result.interest_map[i] = self.interest_map[i].lerp(other.interest_map[i], blend);
             result.danger_map[i] = self.danger_map[i].lerp(other.danger_map[i], blend);
         }
-
-        // Lerp speed and urgency
-        result.speed = self.speed.lerp(other.speed, blend);
-        result.urgency = self.urgency.lerp(other.urgency, blend);
 
         result
     }
@@ -239,8 +206,6 @@ impl CombinedSteeringTarget {
                 let target_danger = target.danger_map[i];
                 final_target.interest_map[i] = target_interest.max(final_target.interest_map[i]);
                 final_target.danger_map[i] = target_danger.max(final_target.danger_map[i]);
-                final_target.speed = final_target.speed.min(target.speed);
-                final_target.urgency = final_target.urgency.max(target.urgency);
             }
         }
         CombinedSteeringTarget(final_target)
@@ -248,7 +213,7 @@ impl CombinedSteeringTarget {
 
     /// Convert the combined steering target into a target heading vector.
     /// This is normalized such that multiplying it by the agent's maximum
-    /// veolcit will produce a heading vector that can be used for movement.
+    /// veolcity will produce a heading vector that can be used for movement.
     /// Danger sensitivity allows for trading off danger vs. interest. The
     /// higher the sensitivity, the more likely a direction is unmasked. A
     /// good starting value is 0.05.
@@ -271,16 +236,7 @@ impl CombinedSteeringTarget {
             .iter()
             .position(|x| *x >= max_interest)
             .unwrap_or(0);
-        let heading = SteeringTarget::interpolate_peak(&masked_interest, target_slot);
-
-        let speed = if inner.urgency > 0.0 {
-            // Urgency overrides speed to force movement
-            inner.speed.lerp(1.0, inner.urgency)
-        } else {
-            inner.speed
-        };
-
-        heading * speed
+        SteeringTarget::interpolate_peak(&masked_interest, target_slot)
     }
 }
 
@@ -305,7 +261,7 @@ pub(crate) fn combine_steering_targets(
             entity.insert(CombinedSteeringTarget::new(targets));
         } else {
             // If there are no steering targets, then the default behavior
-            // should be stop moving by setting target speed to 0.0.
+            // should be stop moving.
             entity.insert(CombinedSteeringTarget::ZERO);
         }
     }
@@ -342,7 +298,7 @@ pub(crate) fn update_previous_steering_outputs(
 }
 
 /// Debug visualization for combined steering targets. Draws interest and danger
-/// maps as colored lines radiating from each agent, weighted by urgency/speed.
+/// maps as colored lines radiating from each agent.
 pub(crate) fn debug_combined_steering(
     mut gizmos: Gizmos,
     query: Query<(&GlobalTransform, &CombinedSteeringTarget)>,
@@ -353,14 +309,6 @@ pub(crate) fn debug_combined_steering(
         let agent_position = transform.translation();
         let target = &combined_target.0;
 
-        // Calculate the weighting factor from urgency and speed
-        // Urgency overrides speed when present
-        let weight = if target.urgency > 0.0 {
-            target.speed.lerp(1.0, target.urgency)
-        } else {
-            target.speed
-        };
-
         // Draw interest map (green) and danger map (red) for each slot
         for i in 0..NUM_SLOTS {
             let direction = SteeringTarget::slot_to_dir(i);
@@ -368,24 +316,21 @@ pub(crate) fn debug_combined_steering(
             // Draw interest as green lines
             let interest_value = target.interest_map[i];
             if interest_value > 0.01 {
-                let interest_length = BASE_LINE_LENGTH * interest_value * weight;
+                let interest_length = BASE_LINE_LENGTH * interest_value;
                 let end_point = agent_position + direction * interest_length;
-                gizmos.line(
-                    agent_position,
-                    end_point,
-                    Color::srgb(0.0, 1.0, 0.0).with_alpha(interest_value * 0.8),
-                );
+                gizmos.line(agent_position, end_point, Color::srgb(0.0, 1.0, 0.0));
             }
 
-            // Draw danger as red lines
+            // Draw danger as red lines (offset slightly)
             let danger_value = target.danger_map[i];
             if danger_value > 0.01 {
-                let danger_length = BASE_LINE_LENGTH * danger_value * weight;
+                let danger_length = BASE_LINE_LENGTH * danger_value;
                 let end_point = agent_position + direction * danger_length;
+                let offset = Vec3::new(0.1, 0.0, 0.1);
                 gizmos.line(
-                    agent_position,
-                    end_point,
-                    Color::srgb(1.0, 0.0, 0.0).with_alpha(danger_value * 0.8),
+                    agent_position + offset,
+                    end_point + offset,
+                    Color::srgb(1.0, 0.0, 0.0),
                 );
             }
         }
@@ -430,7 +375,6 @@ mod tests {
 
         target.danger_map = danger;
         target.interest_map = interest;
-        target.speed = 1.0;
 
         let combined = CombinedSteeringTarget(target);
         let heading = combined.into_heading(0.05);
@@ -454,13 +398,6 @@ mod tests {
             heading,
             expected_direction
         );
-
-        // Speed should be 1.0 since we set it to 1.0 and urgency is 0.0
-        assert!(
-            (heading.length() - 1.0).abs() < 0.1,
-            "Expected speed close to 1.0, got: {}",
-            heading.length()
-        );
     }
 
     #[test]
@@ -471,7 +408,6 @@ mod tests {
         // Slot 0 has high interest, no danger
         target.interest_map[0] = 1.0;
         target.danger_map[0] = 0.0;
-        target.speed = 1.0;
 
         let combined = CombinedSteeringTarget(target);
         let heading = combined.into_heading(0.05);
@@ -482,30 +418,6 @@ mod tests {
             heading.normalize().dot(expected_direction) > 0.95,
             "Expected heading to point in +X direction. Got: {:?}",
             heading
-        );
-    }
-
-    #[test]
-    fn test_into_heading_with_urgency() {
-        // Test that urgency overrides low speed
-        let mut target = SteeringTarget::default();
-
-        target.interest_map[0] = 1.0;
-        target.danger_map[0] = 0.0;
-        target.speed = 0.2;
-        target.urgency = 0.8;
-
-        let combined = CombinedSteeringTarget(target);
-        let heading = combined.into_heading(0.05);
-
-        // Speed should be lerped from 0.2 towards 1.0 by urgency factor 0.8
-        // lerp(0.2, 1.0, 0.8) = 0.2 + (1.0 - 0.2) * 0.8 = 0.2 + 0.64 = 0.84
-        let expected_speed = 0.2 + (1.0 - 0.2) * 0.8;
-        assert!(
-            (heading.length() - expected_speed).abs() < 0.01,
-            "Expected speed to be {}, got: {}",
-            expected_speed,
-            heading.length()
         );
     }
 }

@@ -1,5 +1,3 @@
-use std::f32::consts::FRAC_PI_3;
-
 use avian3d::prelude::LinearVelocity;
 use bevy::{ecs::query::QueryData, prelude::*};
 use derivative::Derivative;
@@ -22,13 +20,6 @@ pub struct Separate {
     /// distance from neighbors.
     #[derivative(Default(value = "10.0"))]
     pub desired_radius: f32,
-    /// The panic radius. This is a much harder constraint, making the agent
-    /// extremely unlikely to do anything except separate.
-    #[derivative(Default(value = "1.0"))]
-    pub panic_radius: f32,
-    /// Half-angle of the danger cone (radians). Default PI/3 (60 deg).
-    #[derivative(Default(value = "FRAC_PI_3"))]
-    pub danger_cone_angle: f32,
 }
 
 impl Separate {
@@ -36,20 +27,6 @@ impl Separate {
     /// maintain this distance from neighbors.
     pub fn with_desired_radius(mut self, radius: f32) -> Self {
         self.desired_radius = radius;
-        self
-    }
-
-    /// Set the panic radius. This is a much harder constraint,
-    /// making the agent extremely unlikely to do anything
-    /// except separate.
-    pub fn with_panic_radius(mut self, radius: f32) -> Self {
-        self.panic_radius = radius;
-        self
-    }
-
-    /// Set the half-angle of the danger cone (radians).
-    pub fn with_danger_cone_angle(mut self, angle: f32) -> Self {
-        self.danger_cone_angle = angle.max(0.01);
         self
     }
 }
@@ -70,8 +47,6 @@ pub(crate) fn run(mut query: Query<SeparationBehaviorAgentQuery>) {
     for mut agent in query.iter_mut() {
         // Accumulate weighted "away" vectors from all neighbors
         let mut combined_away = Vec3::ZERO;
-        let mut max_intensity = 0.0_f32;
-        let mut max_urgency = 0.0_f32;
 
         for neighbor in agent.neighborhood.neighbors.values() {
             let Some(closest_points) = neighbor.closest_points else {
@@ -90,24 +65,16 @@ pub(crate) fn run(mut query: Query<SeparationBehaviorAgentQuery>) {
 
             // Weight the away direction by intensity (closer = stronger)
             combined_away += direction * intensity;
-            max_intensity = max_intensity.max(intensity);
-
-            // If within panic radius, increase urgency
-            if distance < agent.separate.panic_radius {
-                let panic_level = 1.0 - (distance / agent.separate.panic_radius);
-                max_urgency = max_urgency.max(panic_level);
-            }
         }
 
         // Only set target if we have neighbors to separate from
-        if max_intensity > 0.0 {
-            let away_dir = combined_away.normalize_or_zero();
+        let away_dir = combined_away.normalize_or_zero();
+        if away_dir.length_squared() > f32::EPSILON {
             let mut target = SteeringTarget::default();
             // Interest in moving away from neighbors
             // Danger in the direction toward neighbors
             target.set_interest(away_dir);
-            target.add_danger(-away_dir, max_intensity, agent.separate.danger_cone_angle);
-            target.set_urgency(max_urgency);
+            target.set_danger(-away_dir);
             agent.target.set(BehaviorType::Separation, target);
         } else {
             // Stop moving if we're outside the desired radius

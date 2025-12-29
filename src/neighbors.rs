@@ -136,10 +136,7 @@ pub(crate) fn update_neighborhoods(
                     closest_points_result = match (points, contact) {
                         (Ok(ClosestPoints::WithinMargin(a, b)), _) => Some((a, b)),
                         (Ok(ClosestPoints::Intersecting), Ok(Some(contact))) => {
-                            let pos = collider_item.transform.translation();
-                            let world_point1 = pos + contact.local_point1;
-                            let world_point2 = pos + contact.local_point2;
-                            Some((world_point1, world_point2))
+                            Some((contact.local_point1, contact.local_point2))
                         }
                         _ => None,
                     };
