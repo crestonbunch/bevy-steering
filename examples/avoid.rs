@@ -98,7 +98,7 @@ fn setup(
     // Agent with Avoid and Seek behaviors
     // The agent will try to reach the target while avoiding obstacles
     let agent = SteeringAgent::default()
-        .with_max_speed(1.0)
+        .with_max_speed(2.0)
         .with_max_force(Vec3::splat(50.0))
         .directional();
 

@@ -67,9 +67,7 @@ pub(crate) fn move_agent(mut query: Query<MoveAgentSystemQuery>) {
             let torque = k_angular * angle_error_vec - c_angular * angular_velocity;
             let torque = torque.clamp(-max_torque, max_torque);
             let alignment = agent_forward.dot(target_velocity.normalize_or_zero());
-            if alignment >= 0.0 {
-                forward_force *= alignment;
-            }
+            forward_force *= alignment.abs();
 
             query_item.forces.apply_linear_impulse(lateral_impulse);
             query_item.forces.apply_torque(torque);

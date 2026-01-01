@@ -6,6 +6,8 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use derivative::Derivative;
 
+use crate::SMALL_THRESHOLD;
+
 const NUM_SLOTS: usize = 16;
 
 /// Enum representing the different types of steering behaviors.
@@ -232,6 +234,10 @@ impl CombinedSteeringTarget {
             .map(|(x, y)| x * y)
             .collect::<Vec<_>>();
         let max_interest = masked_interest.iter().fold(f32::MIN, |a, &b| a.max(b));
+        if max_interest <= SMALL_THRESHOLD {
+            // No safe directions, so don't move
+            return Vec3::ZERO;
+        }
         let target_slot = masked_interest
             .iter()
             .position(|x| *x >= max_interest)

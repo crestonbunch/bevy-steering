@@ -6,7 +6,7 @@ use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
-use crate::prelude::NearbyObstacles;
+use crate::{SMALL_THRESHOLD, prelude::NearbyObstacles};
 
 const NUM_SLOTS: usize = 16;
 
@@ -136,7 +136,15 @@ pub(crate) fn speed_control(query: Query<SpeedControllerQuery>, mut commands: Co
             let Some((agent_normal, impact_normal)) = obstacle.impact_normals else {
                 continue;
             };
+            let Some((_, impact_point)) = obstacle.impact_points else {
+                continue;
+            };
             let to_obstacle_dir = -(agent_normal + impact_normal) / 2.0;
+            let agent_dir = if item.velocity.length_squared() > SMALL_THRESHOLD {
+                item.velocity.normalize()
+            } else {
+                item.transform.forward().into()
+            };
 
             // Distance factor: how close is the obstacle?
             // 1.0 when at contact (distance=0), approaches 0.0 at reference_distance
@@ -145,9 +153,13 @@ pub(crate) fn speed_control(query: Query<SpeedControllerQuery>, mut commands: Co
             let normalized_dist = (dist / reference_distance).clamp(0.0, 1.0);
             let threat = -normalized_dist.powi(2) + 1.0;
             let slowdown = item.speed_controller.obstacle_weight * threat;
-
             speed_mask.subtract_speed(to_obstacle_dir, slowdown);
-            // speed_mask.subtract_speed(from_obstacle_dir, slowdown);
+
+            // Project agent direction onto obstacle direction to only slow down
+            // the component of movement that's heading towards the obstacle
+            let obstacle_dir = (impact_point - item.transform.translation()).normalize_or_zero();
+            let agent_toward_obstacle = obstacle_dir * agent_dir.dot(obstacle_dir).max(0.0);
+            speed_mask.subtract_speed(agent_toward_obstacle, slowdown);
         }
 
         commands.entity(item.entity).insert(speed_mask);
