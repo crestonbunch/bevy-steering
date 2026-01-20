@@ -1,7 +1,4 @@
-use avian3d::{
-    collision::collider::contact_query::{ClosestPoints, closest_points, contact, distance},
-    prelude::*,
-};
+use avian3d::{collision::collider::contact_query::distance, prelude::*};
 use bevy::{ecs::query::QueryData, platform::collections::HashMap, prelude::*};
 use derivative::Derivative;
 #[cfg(feature = "serialize")]
@@ -27,6 +24,12 @@ pub struct TrackNearbyObstacles {
     pub avoid_mask: LayerMask,
     /// Custom list of precise entities to ignore as obstacles
     pub ignore_entites: Vec<Entity>,
+    /// The maximum number of obstacles to track. Because collision
+    /// detection is fairly expensive, this number should remain small
+    /// to maintain high FPS in crowded scenes. The default 5 should
+    /// be effective in most cases.
+    #[derivative(Default(value = "5"))]
+    pub max_hits: usize,
 }
 
 impl TrackNearbyObstacles {
@@ -47,6 +50,12 @@ impl TrackNearbyObstacles {
         self.ignore_entites = entities;
         self
     }
+
+    /// Set the maximum number of obstacles to track.
+    pub fn with_max_hits(mut self, max_hits: usize) -> Self {
+        self.max_hits = max_hits;
+        self
+    }
 }
 
 /// A struct that stores the entities, position, and velocity of
@@ -61,7 +70,6 @@ pub struct ComputedObstacle {
     pub transform: GlobalTransform,
     pub velocity: Vec3,
     pub distance: f32,
-    pub closest_points: Option<(Vec3, Vec3)>,
     pub impact_points: Option<(Vec3, Vec3)>,
     pub impact_normals: Option<(Vec3, Vec3)>,
 }
@@ -135,6 +143,10 @@ pub(crate) fn update_nearby_obstacles(
         };
 
         for hit in hits {
+            if obstacles.len() >= agent_query_item.track_obstacles.max_hits {
+                // We've hit the maximum number of obstacles to track.
+                break;
+            }
             let Ok(collider_item) = collider_query.get(hit) else {
                 continue;
             };
@@ -145,7 +157,6 @@ pub(crate) fn update_nearby_obstacles(
                 continue;
             }
             let mut closest_distance = f32::INFINITY;
-            let mut closest_points_result = None;
             let mut impact_points = None;
             let mut impact_normals = None;
             let agent_colliders = agent_query_item
@@ -154,15 +165,6 @@ pub(crate) fn update_nearby_obstacles(
                 .flat_map(|e| collider_query.get(e));
             // Find the closest distance between all agent colliders and the candidate collider.
             for agent_collider in agent_colliders {
-                let points = closest_points(
-                    agent_collider.collider,
-                    agent_collider.transform.translation(),
-                    agent_collider.transform.rotation(),
-                    collider_item.collider,
-                    collider_item.transform.translation(),
-                    collider_item.transform.rotation(),
-                    radius,
-                );
                 let d = distance(
                     agent_collider.collider,
                     agent_collider.transform.translation(),
@@ -171,28 +173,12 @@ pub(crate) fn update_nearby_obstacles(
                     collider_item.transform.translation(),
                     collider_item.transform.rotation(),
                 );
-                let contact = contact(
-                    agent_collider.collider,
-                    agent_collider.transform.translation(),
-                    agent_collider.transform.rotation(),
-                    collider_item.collider,
-                    collider_item.transform.translation(),
-                    collider_item.transform.rotation(),
-                    radius,
-                );
                 let Ok(d) = d else {
                     warn!("Unsupported distance calculation in obstacles");
                     continue;
                 };
                 if d < closest_distance {
                     closest_distance = d;
-                    closest_points_result = match (points, contact) {
-                        (Ok(ClosestPoints::WithinMargin(a, b)), _) => Some((a, b)),
-                        (Ok(ClosestPoints::Intersecting), Ok(Some(contact))) => {
-                            Some((contact.local_point1, contact.local_point2))
-                        }
-                        _ => None,
-                    };
                 }
                 let impacts = spatial_query.cast_shape(
                     agent_collider.collider,
@@ -205,7 +191,6 @@ pub(crate) fn update_nearby_obstacles(
                     },
                     &filter,
                 );
-
                 let Some(impact) = impacts else {
                     continue;
                 };
@@ -225,7 +210,7 @@ pub(crate) fn update_nearby_obstacles(
                 entity: rigid_body.entity,
                 transform: *rigid_body.transform,
                 velocity: rigid_body.velocity.xyz(),
-                closest_points: closest_points_result,
+                // closest_points: closest_points_result,
                 distance: closest_distance,
                 impact_points,
                 impact_normals,
@@ -254,9 +239,6 @@ pub(crate) fn debug_obstacles(mut gizmos: Gizmos, agent_query: Query<DebugObstac
         let agent_position = result.transform.translation();
         gizmos.sphere(agent_position, result.track.distance, SPHERE_COLOR);
         for obstacle in result.obstacles.values() {
-            if let Some((point_a, point_b)) = obstacle.closest_points {
-                gizmos.line(point_a, point_b, LINE_COLOR);
-            }
             if let Some((point_a, point_b)) = obstacle.impact_points {
                 gizmos.line_gradient(point_a, point_b, LINE_COLOR, LINE_COLOR_2);
             }
