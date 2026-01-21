@@ -10,6 +10,11 @@ fn main() {
         .add_plugins(DebugSteeringPlugin)
         .add_plugins(PhysicsDebugPlugin)
         .add_systems(Startup, (setup, configure_gizmos))
+        .insert_resource(DebugSteeringConfig {
+            flags: DebugSteeringFlags::OBSTACLES
+                | DebugSteeringFlags::SPEED
+                | DebugSteeringFlags::COMBINED_STEERING,
+        })
         .run();
 }
 
@@ -113,8 +118,12 @@ fn setup(
         Collider::cuboid(0.8, 0.8, 1.5),
         Avoid::default().with_distance(2.0),
         TrackNearbyObstacles::default()
+            .with_radius(0.5)
             .with_distance(2.0)
             .with_avoid_mask(GameLayers::Obstacle.into()),
+        // Do not stop when colliding; try to slide around obstacles.
+        // A value of 1.0 (default) would cause the agent to completely stop.
+        SpeedController::default().with_obstacle_weight(0.9),
         Approach::new(Vec3::new(8.0, 0.5, 8.0), 1.0),
         CollisionLayers::new(
             [GameLayers::Agent],
@@ -134,8 +143,12 @@ fn setup(
         Collider::cuboid(0.8, 0.8, 1.5),
         Avoid::default().with_distance(2.0),
         TrackNearbyObstacles::default()
+            .with_radius(0.5)
             .with_distance(5.0)
             .with_avoid_mask(GameLayers::Obstacle.into()),
+        // Do not stop when colliding; try to slide around obstacles.
+        // A value of 1.0 (default) would cause the agent to completely stop.
+        SpeedController::default().with_obstacle_weight(0.9),
         Approach::new(Vec3::new(8.0, 0.5, 8.0), 1.0),
         CollisionLayers::new(
             [GameLayers::Agent],

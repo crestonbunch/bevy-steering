@@ -59,11 +59,11 @@ pub(crate) fn run(mut query: Query<AvoidBehaviorAgentQuery>) {
             if obstacle.distance > agent.avoid.distance {
                 continue;
             }
-            let Some((agent_normal, impact_normal)) = obstacle.impact_normals else {
+            let Some((impact_normal, _)) = obstacle.impact_normals else {
                 continue;
             };
-            let dir = -(agent_normal + impact_normal) / 2.0;
-            target.set_danger(dir);
+            // Move away from the direction of impact
+            target.set_danger(-impact_normal);
         }
 
         agent.outputs.set(BehaviorType::Avoid, target);

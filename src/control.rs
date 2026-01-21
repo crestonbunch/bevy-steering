@@ -3,6 +3,7 @@ use enum_map::{Enum, EnumMap};
 use itertools::Itertools;
 use std::f32::consts::PI;
 
+use avian3d::prelude::*;
 use bevy::prelude::*;
 use derivative::Derivative;
 
@@ -41,6 +42,27 @@ impl TemporalSmoothing {
     /// value is around 0.2.
     pub fn new(blend: f32) -> Self {
         Self(blend.clamp(0.0, 1.0))
+    }
+}
+
+/// Represents the forward direction of an entity in world space. If the object
+/// is moving, this is the direction of the LinearVelocity vector. If the
+/// object is stationary, this represents the Vec3::NEG_Z direction. (The
+/// default forward direction in Bevy.)
+#[derive(Component, Debug, Copy, Clone, Deref, DerefMut)]
+pub struct ForwardDir(Dir3);
+
+pub(crate) fn update_forward_dir(
+    mut commands: Commands,
+    query: Query<(Entity, &LinearVelocity, &GlobalTransform)>,
+) {
+    for (entity, velocity, transform) in query.iter() {
+        let forward = if velocity.0.length_squared() > SMALL_THRESHOLD {
+            Dir3::new_unchecked(velocity.normalize())
+        } else {
+            transform.forward()
+        };
+        commands.entity(entity).insert(ForwardDir(forward));
     }
 }
 
@@ -221,20 +243,25 @@ impl CombinedSteeringTarget {
     /// good starting value is 0.05.
     pub fn into_heading(self, danger_sensitivity: f32) -> Vec3 {
         let inner = self.0;
-        let min_danger = inner.danger_map.iter().fold(f32::MAX, |a, &b| a.min(b));
+        let min_danger = inner
+            .danger_map
+            .iter()
+            .filter(|x| **x > 0.0)
+            .fold(f32::MAX, |a, &b| a.min(b));
         let danger_threshold = min_danger + danger_sensitivity;
         let mask = inner
             .danger_map
             .into_iter()
-            .map(|x| if x <= danger_threshold { 1.0 } else { 0.0 });
+            .map(|x| if x <= danger_threshold { 1.0 } else { 0.0 })
+            .collect::<Vec<_>>();
         let masked_interest = inner
             .interest_map
             .into_iter()
-            .zip(mask)
+            .zip(mask.iter())
             .map(|(x, y)| x * y)
             .collect::<Vec<_>>();
         let max_interest = masked_interest.iter().fold(f32::MIN, |a, &b| a.max(b));
-        if max_interest <= SMALL_THRESHOLD {
+        if max_interest <= f32::EPSILON {
             // No safe directions, so don't move
             return Vec3::ZERO;
         }
@@ -340,6 +367,17 @@ pub(crate) fn debug_combined_steering(
                 );
             }
         }
+    }
+}
+
+pub(crate) fn debug_forward_dir(mut gizmos: Gizmos, query: Query<(&GlobalTransform, &ForwardDir)>) {
+    const ARROW_LENGTH: f32 = 3.0;
+    const ARROW_COLOR: Color = Color::srgb(0.6, 0.3, 0.0);
+
+    for (transform, forward_dir) in query.iter() {
+        let start = transform.translation();
+        let end = start + forward_dir.as_vec3() * ARROW_LENGTH;
+        gizmos.arrow(start, end, ARROW_COLOR);
     }
 }
 

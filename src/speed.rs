@@ -6,7 +6,7 @@ use derivative::Derivative;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
-use crate::{SMALL_THRESHOLD, prelude::NearbyObstacles};
+use crate::prelude::NearbyObstacles;
 
 const NUM_SLOTS: usize = 16;
 
@@ -88,13 +88,14 @@ impl SpeedOverride {
 pub struct SpeedController {
     /// The weight of the obstacle avoidance behavior. If
     /// it's greater than 0.0, the agent will slow down
-    /// near obstacles.
+    /// near obstacles. The default value of 1.0 will cause an agent to
+    /// completely stop to avoid a collision.
     #[derivative(Default(value = "1.0"))]
     pub obstacle_weight: f32,
 
     /// The distance at which the agent will start slowing down
     /// if it's in the direction of an obstacle.
-    #[derivative(Default(value = "10.0"))]
+    #[derivative(Default(value = "1.0"))]
     pub stopping_distance: f32,
 }
 
@@ -133,33 +134,16 @@ pub(crate) fn speed_control(query: Query<SpeedControllerQuery>, mut commands: Co
         let reference_distance = item.speed_controller.stopping_distance;
         for obstacle in obstacles.values() {
             // Slow down if the direction is towards the obstacle
-            let Some((agent_normal, impact_normal)) = obstacle.impact_normals else {
+            let Some((impact_point, agent_point)) = obstacle.impact_points else {
                 continue;
             };
-            let Some((_, impact_point)) = obstacle.impact_points else {
-                continue;
-            };
-            let to_obstacle_dir = -(agent_normal + impact_normal) / 2.0;
-            let agent_dir = if item.velocity.length_squared() > SMALL_THRESHOLD {
-                item.velocity.normalize()
-            } else {
-                item.transform.forward().into()
-            };
+            let to_obstacle_dir = (impact_point - agent_point).normalize_or_zero();
 
-            // Distance factor: how close is the obstacle?
-            // 1.0 when at contact (distance=0), approaches 0.0 at reference_distance
-            // Stops quickly using quadratic falloff
             let dist = obstacle.distance;
             let normalized_dist = (dist / reference_distance).clamp(0.0, 1.0);
-            let threat = -normalized_dist.powi(2) + 1.0;
+            let threat = 1.0 - normalized_dist;
             let slowdown = item.speed_controller.obstacle_weight * threat;
             speed_mask.subtract_speed(to_obstacle_dir, slowdown);
-
-            // Project agent direction onto obstacle direction to only slow down
-            // the component of movement that's heading towards the obstacle
-            let obstacle_dir = (impact_point - item.transform.translation()).normalize_or_zero();
-            let agent_toward_obstacle = obstacle_dir * agent_dir.dot(obstacle_dir).max(0.0);
-            speed_mask.subtract_speed(agent_toward_obstacle, slowdown);
         }
 
         commands.entity(item.entity).insert(speed_mask);

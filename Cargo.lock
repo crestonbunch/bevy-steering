@@ -384,6 +384,7 @@ version = "0.3.0"
 dependencies = [
  "avian3d",
  "bevy",
+ "bitflags 2.10.0",
  "derivative",
  "enum-map",
  "itertools 0.14.0",

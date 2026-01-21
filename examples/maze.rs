@@ -210,6 +210,7 @@ fn setup(
         // Try commenting out the Avoid behavior to see what happens!
         Avoid::default().with_distance(2.0),
         TrackNearbyObstacles::default()
+            .with_radius(0.4)
             .with_distance(4.0)
             .with_avoid_mask(GameLayer::Obstacle.into()),
         SpeedController::default().with_stopping_distance(1.0),

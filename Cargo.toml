@@ -12,6 +12,7 @@ serialize = ["dep:serde", "avian3d/serialize", "bevy/serialize"]
 [dependencies]
 avian3d = { version = "0.4.1" }
 bevy = "0.17.3"
+bitflags = "2"
 derivative = "2.2.0"
 enum-map = "2.7.3"
 itertools = "0.14.0"
