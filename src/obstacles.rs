@@ -138,7 +138,7 @@ pub(crate) fn setup_obstacle_tracking(
 
 pub(crate) fn update_obstacle_tracking(
     parent_query: Query<(&GlobalTransform, &ForwardDir, &ObstacleDetectors)>,
-    mut detector_query: Query<(&mut ShapeCaster), With<ObstacleDetectorOf>>,
+    mut detector_query: Query<&mut ShapeCaster, With<ObstacleDetectorOf>>,
 ) {
     for (transform, forward_dir, child_detectors) in parent_query.iter() {
         // Get the world-space forward direction

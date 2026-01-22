@@ -213,7 +213,7 @@ fn setup(
             .with_radius(0.4)
             .with_distance(4.0)
             .with_avoid_mask(GameLayer::Obstacle.into()),
-        SpeedController::default().with_stopping_distance(1.0),
+        SpeedController::default().with_stopping_distance(4.0),
         Transform::from_translation(Vec3::new(-12.0, 0.4, -14.0))
             .looking_at(Vec3::new(-12.0, 0.0, -6.0), Vec3::Y),
         RigidBody::Dynamic,
@@ -255,7 +255,7 @@ fn setup(
     ));
 
     // Ambient light to see into the maze better
-    commands.insert_resource(AmbientLight {
+    commands.spawn(AmbientLight {
         color: Color::WHITE,
         brightness: 200.0,
         ..Default::default()
