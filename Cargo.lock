@@ -380,7 +380,7 @@ dependencies = [
 
 [[package]]
 name = "bevy-steering"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "avian3d",
  "bevy",
