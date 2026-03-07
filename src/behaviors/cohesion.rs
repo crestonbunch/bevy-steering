@@ -20,6 +20,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
 #[component(on_remove = on_cohere_remove)]
+#[reflect(Component)]
 pub struct Cohere {
     /// Below this distance from center of mass, no cohesion is applied
     #[derivative(Default(value = "0.0"))]

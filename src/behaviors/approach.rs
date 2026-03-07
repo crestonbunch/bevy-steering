@@ -18,6 +18,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[component(on_remove = on_approach_remove)]
+#[reflect(Component)]
 pub struct Approach {
     /// The radius within which the agent will approach the target.
     pub target_radius: f32,

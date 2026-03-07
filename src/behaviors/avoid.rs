@@ -25,6 +25,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", serde(default))]
 #[require(TrackNearbyObstacles)]
 #[component(on_remove = on_avoid_remove)]
+#[reflect(Component)]
 pub struct Avoid {
     /// Only avoid obstacles whose nearest point is at most this distance away.
     #[derivative(Default(value = "1.0"))]

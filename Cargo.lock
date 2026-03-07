@@ -380,14 +380,12 @@ dependencies = [
 
 [[package]]
 name = "bevy-steering"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "avian3d",
  "bevy",
  "bitflags 2.10.0",
  "derivative",
- "enum-map",
- "itertools 0.14.0",
  "rand 0.9.2",
  "serde",
  "strum",
@@ -2426,26 +2424,6 @@ name = "encase_derive_impl"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8bad72d8308f7a382de2391ec978ddd736e0103846b965d7e2a63a75768af30"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.111",
-]
-
-[[package]]
-name = "enum-map"
-version = "2.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6866f3bfdf8207509a033af1a75a7b08abda06bbaaeae6669323fd5a097df2e9"
-dependencies = [
- "enum-map-derive",
-]
-
-[[package]]
-name = "enum-map-derive"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f282cfdfe92516eb26c2af8589c274c7c17681f5ecc03c18255fe741c6aa64eb"
 dependencies = [
  "proc-macro2",
  "quote",

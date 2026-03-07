@@ -14,6 +14,7 @@ use crate::{
 /// Align behavior attempts to match the velocity and direction of nearby neighbors.
 #[derive(Component, Default, Debug, Copy, Clone, Reflect)]
 #[component(on_remove = on_alignment_remove)]
+#[reflect(Component)]
 pub struct Align;
 
 #[derive(QueryData)]

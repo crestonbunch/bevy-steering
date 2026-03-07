@@ -16,6 +16,7 @@ use crate::control::{BehaviorType, SteeringOutputs};
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[component(on_remove = on_path_following_remove)]
+#[reflect(Component)]
 pub struct PathFollowing {
     /// The points that make up the path (polyline)
     pub path: Vec<Vec3>,

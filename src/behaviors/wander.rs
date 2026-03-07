@@ -19,6 +19,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[component(on_remove = on_wander_remove)]
+#[reflect(Component)]
 pub struct Wander {
     /// Distance ahead of the character where the wander sphere is projected
     pub wander_distance: f32,

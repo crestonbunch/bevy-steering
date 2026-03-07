@@ -19,6 +19,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
 #[component(on_remove = on_flee_remove)]
+#[reflect(Component)]
 pub struct Flee {
     /// The radius within which the agent will flee from the target.
     #[derivative(Default(value = "f32::MAX"))]

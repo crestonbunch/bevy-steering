@@ -1,6 +1,6 @@
+use std::collections::HashMap;
+
 use bevy::ecs::query::QueryData;
-use enum_map::{Enum, EnumMap};
-use itertools::Itertools;
 use std::f32::consts::PI;
 
 use avian3d::prelude::*;
@@ -12,7 +12,7 @@ use crate::SMALL_THRESHOLD;
 const NUM_SLOTS: usize = 16;
 
 /// Enum representing the different types of steering behaviors.
-#[derive(Debug, Copy, Clone, Enum, Hash, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Reflect)]
 pub enum BehaviorType {
     Alignment,
     Approach,
@@ -25,6 +25,22 @@ pub enum BehaviorType {
     Seek,
     Separation,
     Wander,
+}
+
+impl BehaviorType {
+    const ALL: [BehaviorType; 11] = [
+        Self::Alignment,
+        Self::Approach,
+        Self::Avoid,
+        Self::Cohere,
+        Self::Evasion,
+        Self::Flee,
+        Self::PathFollowing,
+        Self::Pursuit,
+        Self::Seek,
+        Self::Separation,
+        Self::Wander,
+    ];
 }
 
 /// Insert a TemporalSmoothing resource to enable temporal smoothing.
@@ -49,7 +65,8 @@ impl TemporalSmoothing {
 /// is moving, this is the direction of the LinearVelocity vector. If the
 /// object is stationary, this represents the Vec3::NEG_Z direction. (The
 /// default forward direction in Bevy.)
-#[derive(Component, Debug, Copy, Clone, Deref, DerefMut)]
+#[derive(Component, Debug, Copy, Clone, Deref, DerefMut, Reflect)]
+#[reflect(Component)]
 pub struct ForwardDir(Dir3);
 
 pub(crate) fn update_forward_dir(
@@ -66,31 +83,32 @@ pub(crate) fn update_forward_dir(
     }
 }
 
-#[derive(Component, Default, Debug, Copy, Clone, Deref, DerefMut)]
+#[derive(Component, Default, Debug, Clone, Deref, DerefMut)]
 pub(crate) struct PreviousSteeringOutputs(SteeringOutputs);
 
 /// Represents the outputs of the steering behaviors. This is used to
 /// store the targets of the steering behaviors. They can be
 /// combined to create a single target, which will be used to
 /// move the agent.
-#[derive(Component, Default, Debug, Copy, Clone)]
+#[derive(Component, Default, Debug, Clone, Reflect)]
 #[require(PreviousSteeringOutputs)]
+#[reflect(Component)]
 pub struct SteeringOutputs {
-    values: EnumMap<BehaviorType, Option<SteeringTarget>>,
+    values: HashMap<BehaviorType, SteeringTarget>,
 }
 
 impl SteeringOutputs {
     #[allow(dead_code)]
     pub(crate) fn get(&self, behavior: BehaviorType) -> Option<SteeringTarget> {
-        self.values[behavior]
+        self.values.get(&behavior).copied()
     }
 
     pub(crate) fn set(&mut self, behavior: BehaviorType, target: SteeringTarget) {
-        self.values[behavior] = Some(target);
+        self.values.insert(behavior, target);
     }
 
     pub(crate) fn clear(&mut self, behavior: BehaviorType) {
-        self.values[behavior] = None;
+        self.values.remove(&behavior);
     }
 
     /// Returns a vector of behaviors with their targets that have been
@@ -98,27 +116,26 @@ impl SteeringOutputs {
     fn only_some(&self) -> Vec<(BehaviorType, SteeringTarget)> {
         self.values
             .iter()
-            .filter_map(|(behavior, target)| target.map(|t| (behavior, t)))
+            .map(|(&behavior, &target)| (behavior, target))
             .collect()
     }
 
     /// Returns true if any of the behavior targets are set.
     fn has_some(&self) -> bool {
-        self.values.iter().any(|(_, target)| target.is_some())
+        !self.values.is_empty()
     }
 
     fn lerp(&self, other: &SteeringOutputs, blend: f32) -> SteeringOutputs {
         let mut result = SteeringOutputs::default();
-        let keys = self
-            .values
-            .iter()
-            .zip(other.values.iter())
-            .flat_map(|((a, _), (b, _))| [a, b])
-            .unique();
-        for behavior in keys {
-            let a = self.get(behavior).unwrap_or_default();
-            let b = other.get(behavior).unwrap_or_default();
-            result.set(behavior, a.lerp(&b, blend));
+        for behavior in BehaviorType::ALL {
+            let a = self.get(behavior);
+            let b = other.get(behavior);
+            match (a, b) {
+                (Some(a), Some(b)) => result.set(behavior, a.lerp(&b, blend)),
+                (Some(a), None) => result.set(behavior, a),
+                (None, Some(b)) => result.set(behavior, b),
+                (None, None) => {}
+            }
         }
         result
     }
@@ -318,7 +335,7 @@ pub(crate) fn temporal_smoothing(
     for query_item in query.iter_mut() {
         let previous_outputs = query_item.previous_outputs;
         let mut outputs = query_item.outputs;
-        *outputs = outputs.lerp(&previous_outputs.0, factor.0);
+        *outputs = outputs.clone().lerp(&previous_outputs.0, factor.0);
     }
 }
 
@@ -326,7 +343,7 @@ pub(crate) fn update_previous_steering_outputs(
     mut query: Query<(&SteeringOutputs, &mut PreviousSteeringOutputs)>,
 ) {
     for (outputs, mut previous) in query.iter_mut() {
-        previous.0 = *outputs;
+        previous.0 = outputs.clone();
     }
 }
 

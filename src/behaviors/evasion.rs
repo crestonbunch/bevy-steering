@@ -20,6 +20,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
 #[component(on_remove = on_evasion_remove)]
+#[reflect(Component)]
 pub struct Evasion {
     /// The entity to evade from
     pub target: Option<Entity>,

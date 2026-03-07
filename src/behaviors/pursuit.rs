@@ -21,6 +21,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", serde(default))]
 #[derivative(Default)]
 #[component(on_remove = on_pursuit_remove)]
+#[reflect(Component)]
 pub struct Pursuit {
     /// The entity being pursued
     pub target: Option<Entity>,

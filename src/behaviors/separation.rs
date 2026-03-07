@@ -20,6 +20,7 @@ use crate::{
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serialize", serde(default))]
 #[component(on_remove = on_separate_remove)]
+#[reflect(Component)]
 pub struct Separate {
     /// The desired separation radius. Agents will try to maintain this
     /// distance from neighbors.
