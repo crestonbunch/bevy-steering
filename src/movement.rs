@@ -2,7 +2,7 @@ use avian3d::prelude::*;
 use bevy::{ecs::query::QueryData, prelude::*};
 
 use crate::{
-    agent::{SteeringAgent, SteeringLocomotionMode},
+    agent::{DisableMovement, SteeringAgent, SteeringLocomotionMode},
     control::CombinedSteeringTarget,
     speed::SpeedMask,
 };
@@ -21,7 +21,7 @@ pub(crate) struct MoveAgentSystemQuery {
     speed_mask: &'static SpeedMask,
 }
 
-pub(crate) fn move_agent(mut query: Query<MoveAgentSystemQuery>) {
+pub(crate) fn move_agent(mut query: Query<MoveAgentSystemQuery, Without<DisableMovement>>) {
     for mut query_item in query.iter_mut() {
         let target_heading = query_item.target.into_heading(DANGER_SENSITIVITY);
         let target_speed = query_item.speed_mask.get_speed(target_heading);

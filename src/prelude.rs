@@ -1,3 +1,4 @@
+pub use crate::agent::DisableMovement;
 pub use crate::agent::SteeringAgent;
 pub use crate::agent::SteeringLocomotionMode;
 pub use crate::behaviors::Align;

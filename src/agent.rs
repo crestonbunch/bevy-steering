@@ -27,6 +27,14 @@ pub enum SteeringLocomotionMode {
     Directional,
 }
 
+/// When present on an entity with a [SteeringAgent], prevents
+/// movement forces and torques from being applied. Steering
+/// behaviors will still compute targets, but the agent will
+/// not physically move.
+#[derive(Component, Default, Debug, Copy, Clone, Reflect)]
+#[reflect(Component)]
+pub struct DisableMovement;
+
 /// Represents an autonomous agent. Agents are controlled by
 /// steering behaviors. Add a [SteeringController] component
 /// to the agent to give it steering behavior.
